@@ -19,7 +19,7 @@ void* try_free_list(arena_t *a, size_t need_total) {
     for (free_chunk_t *p = a->free_list; p; p = p->links.fd) {
         if (!chunk_is_free(p)) continue;
 
-        if (get_chunk_size(p) >= need_total) return split_free_chunk(a, p, need_total);
+        if (chunk_get_size(p) >= need_total) return split_free_chunk(a, p, need_total);
     }
     return NULL;
 }

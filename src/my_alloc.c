@@ -70,7 +70,7 @@ void *my_malloc(size_t size) {
         pthread_mutex_unlock(&a->lock);
     }
 
-    void *ret = get_payload_from_hdr(hdr);
+    void *ret = chunk_hdr_to_payload(hdr);
 
     // if (DEBUG) printf("[malloc] exit: [tid=%d]\n", omp_get_thread_num());
     
@@ -85,8 +85,8 @@ void my_free(void *ptr) {
 
     // if (DEBUG) printf("[free] entered: ptr=%d [tid=%d]\n", OFF(a, ptr), omp_get_thread_num());
 
-    uint8_t *hdr = (uint8_t*)get_hdr_from_payload(ptr);
-    size_t csz = get_chunk_size(hdr);
+    uint8_t *hdr = (uint8_t*)chunk_payload_to_hdr(ptr);
+    size_t csz = chunk_get_size(hdr);
     size_t usable = csz - sizeof(size_t);
     int bin = size_to_tcache_bin(usable);
 
@@ -116,12 +116,12 @@ void my_free(void *ptr) {
     // 2) Otherwise fall back to the old free path: mark free, coalesce, push into arena freelist.
     pthread_mutex_lock(&a->lock);
 
-    set_hdr_keep_prev(hdr, csz, 1);
-    set_ftr(hdr, csz);
+    chunk_write_size_to_hdr(hdr, csz, 1);
+    chunk_write_ftr(hdr, csz);
 
     void *merged = coalesce(a, hdr);
 
-    size_t msz = get_chunk_size(merged);
+    size_t msz = chunk_get_size(merged);
     uint8_t *merged_end = (uint8_t*)merged + msz;
 
     set_next_chunk_hdr_prev(a, merged, 0);

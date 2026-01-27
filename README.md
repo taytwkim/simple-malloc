@@ -1,2 +1,3 @@
-# simple-malloc
-A Simple Memory Allocator
+# malloc
+
+Implement a memory allocator
