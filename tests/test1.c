@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
-#include "../src/my_alloc.h"
+#include "../src/malloc.h"
 
 // Unit tests for multi-threaded mallocs and frees
 

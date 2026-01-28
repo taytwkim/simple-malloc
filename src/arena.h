@@ -16,18 +16,24 @@ typedef struct arena {
     pthread_mutex_t lock;
 } arena_t;
 
+/* returns the pointer offset compared to arena base */
+static inline int OFF(arena_t *a, void *p) {
+    return (int)((uintptr_t)p - (uintptr_t)a->base);
+}
+
 void arena_init(arena_t *a, int id);
 
 arena_t *get_my_arena(void);
 
-void arena_set_next_chunk_prev_in_use(arena_t *a, void *hdr, int prev_in_use);
+void arena_set_next_chunk_P(arena_t *a, void *hdr, int P);
 
-void set_next_chunk_hdr_prev(arena_t *a, void *hdr, int prev_in_use);
+/* if the free chunk is larger than needed, split the chunk */
+void* arena_split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need);
 
-void* split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total);
+/* if the freelist does not have a suitable chunk, carve from the top */
+void* arena_carve_from_top(arena_t *a, size_t need_total);
 
-void* carve_from_top(arena_t *a, size_t need_total);
-
-void* coalesce(arena_t *a, void *hdr);
+/* when putting a free chunk in the freelist, merge with adjacent free chunks */
+void* arena_coalesce_free_chunk(arena_t *a, void *hdr);
 
 #endif

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "../src/my_alloc.h"
+#include "../src/malloc.h"
 
 /* Unit tests for sequential malloc and frees */
 

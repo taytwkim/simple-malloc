@@ -1,3 +1,1 @@
-# malloc
-
-Implement a memory allocator
+# Implement a Memory Allocator

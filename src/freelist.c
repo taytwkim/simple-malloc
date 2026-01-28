@@ -1,25 +1,24 @@
 #include "freelist.h"
 
-void remove_from_free_list(arena_t *a, free_chunk_t *fc) {
-    free_chunk_t *fd = fc->links.fd, *bk = fc->links.bk;
-    if (bk) bk->links.fd = fd;
-    if (fd) fd->links.bk = bk;
+void free_list_remove(arena_t *a, free_chunk_t *fc) {
+    free_chunk_t *fd = fc->fd, *bk = fc->bk;
+    if (bk) bk->fd = fd;
+    if (fd) fd->bk = bk;
     if (a->free_list == fc) a->free_list = fd;
-    fc->links.fd = fc->links.bk = NULL;
+    fc->fd = fc->bk = NULL;
 }
 
-void push_front_to_free_list(arena_t *a, free_chunk_t *fc) {
-    fc->links.bk = NULL;
-    fc->links.fd = a->free_list;
-    if (a->free_list) a->free_list->links.bk = fc;
+void free_list_push_front(arena_t *a, free_chunk_t *fc) {
+    fc->bk = NULL;
+    fc->fd = a->free_list;
+    if (a->free_list) a->free_list->bk = fc;
     a->free_list = fc;
 }
 
-void* try_free_list(arena_t *a, size_t need_total) {
-    for (free_chunk_t *p = a->free_list; p; p = p->links.fd) {
+void* free_list_try(arena_t *a, size_t need_total) {
+    for (free_chunk_t *p = a->free_list; p; p = p->fd) {
         if (!chunk_is_free(p)) continue;
-
-        if (chunk_get_size(p) >= need_total) return split_free_chunk(a, p, need_total);
+        if (chunk_get_size(p) >= need_total) return arena_split_free_chunk(a, p, need_total);
     }
     return NULL;
 }

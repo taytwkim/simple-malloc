@@ -47,7 +47,7 @@ typedef struct free_chunk {
 #define CHUNK_HDR_P_MASK ((size_t) 1)
 
 /* Header & Footer Operations */
-static inline int chunk_get_P(size_t hdr_word) { return (hdr_word & CHUNK_HDR_P_MASK) != 0; }   // hdr_word to differentiate with size_t* hdr
+static inline int chunk_get_P(size_t hdr_word) { return (hdr_word & CHUNK_HDR_P_MASK) != 0; }   // hdr_word differentiated from size_t* hdr
 
 static inline void chunk_set_P(void *hdr, int on) {
     size_t h = *(size_t*)hdr;
@@ -79,6 +79,11 @@ static inline size_t chunk_get_size(void *hdr) { return (*(size_t*)hdr) & CHUNK_
 static inline int prev_chunk_is_free(void *hdr) { return !chunk_get_P(*(size_t*)hdr); }
 
 static inline void* get_next_chunk_hdr(void *hdr) { return (uint8_t*)hdr + chunk_get_size(hdr); }
+
+static inline int chunk_is_free(void *hdr) {
+    void *nxt = get_next_chunk_hdr(hdr);
+    return prev_chunk_is_free(nxt);
+}
 
 static inline size_t get_free_chunk_min_size(void) { return align_16(sizeof(free_chunk_t) + sizeof(size_t)); }
 

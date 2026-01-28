@@ -76,17 +76,12 @@ arena_t *get_my_arena(void) {
     return t_arena;
 }
 
-void arena_set_next_chunk_prev_in_use(arena_t *a, void *hdr, int prev_in_use) {
+void arena_set_next_chunk_P(arena_t *a, void *hdr, int prev_in_use) {
     void *nxt = get_next_chunk_hdr(hdr);
     if ((uint8_t*)nxt < a->bump) chunk_set_P(nxt, prev_in_use);
 }
 
-void set_next_chunk_hdr_prev(arena_t *a, void *hdr, int prev_in_use) {
-    void *nxt = get_next_chunk_hdr(hdr);
-    if ((uint8_t*)nxt < a->bump) chunk_set_P(nxt, prev_in_use);
-}
-
-void* carve_from_top(arena_t *a, size_t need_total) {
+void* arena_carve_from_top(arena_t *a, size_t need_total) {
     uintptr_t start = (uintptr_t)a->bump;
 
     uintptr_t payload = (start + sizeof(size_t) + 15u) & ~((uintptr_t)15u);
@@ -94,7 +89,7 @@ void* carve_from_top(arena_t *a, size_t need_total) {
 
     if ((size_t)(a->end - hdr) < need_total) return NULL;
 
-    chunk_write_size_to_hdr(hdr, need_total, 0);
+    chunk_write_size_to_hdr(hdr, need_total);
     chunk_set_P(hdr, 1);
 
     a->bump = hdr + need_total;
@@ -102,65 +97,62 @@ void* carve_from_top(arena_t *a, size_t need_total) {
     return hdr;
 }
 
-void* coalesce(arena_t *a, void *hdr) {
+void* arena_coalesce_free_chunk(arena_t *a, void *hdr) {
     size_t csz = chunk_get_size(hdr);
     void *nxt = get_next_chunk_hdr(hdr);
 
     if ((uint8_t*)nxt < a->bump && chunk_is_free(nxt)) {
-        // if (DEBUG && VERBOSE) printf("[coalesce] right chunk is free, merge with right chunk\n");
+        DBG("[coalesce] right chunk is free, merge with right chunk\n");
 
         size_t nxt_sz = chunk_get_size(nxt);
-        remove_from_free_list(a, (free_chunk_t*)nxt);
+        free_list_remove(a, (free_chunk_t*)nxt);
         csz += nxt_sz;
-        chunk_write_size_to_hdr(hdr, csz, 1);
+        chunk_write_size_to_hdr(hdr, csz);
         chunk_write_ftr(hdr, csz);
     }
 
     if (prev_chunk_is_free(hdr)) {
-        // if (DEBUG && VERBOSE) printf("[coalesce] left chunk is free, merge with left chunk\n");
+        DBG("[coalesce] left chunk is free, merge with left chunk\n");
 
         uint8_t *p = (uint8_t*)hdr;
-        size_t prev_footer = *(size_t*)(p - sizeof(size_t));
-
-        if (get_free_bit_from_hdr(prev_footer)) {
-            size_t prev_sz = chunk_get_size(prev_footer);
-            void *prv = p - prev_sz;
-            remove_from_free_list(a, (free_chunk_t*)prv);
-            csz += prev_sz;
-            chunk_write_size_to_hdr(prv, csz, 1);
-            chunk_write_ftr(prv, csz);
-            hdr = prv;
-        }
+        void* prev_footer = (p - sizeof(size_t));
+        size_t prev_sz = chunk_get_size(prev_footer);
+        void *prv = p - prev_sz;
+        free_list_remove(a, (free_chunk_t*)prv);
+        csz += prev_sz;
+        chunk_write_size_to_hdr(prv, csz);
+        chunk_write_ftr(prv, csz);
+        hdr = prv;
     }
     return hdr;
 }
 
-void* split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total) {
+void* arena_split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total) {
     size_t csz = chunk_get_size(fc);
     const size_t MIN_FREE = get_free_chunk_min_size();
 
     if (csz >= need_total + MIN_FREE) {
-        remove_from_free_list(a, fc);
+        free_list_remove(a, fc);
 
         uint8_t *base = (uint8_t*)fc;
-        chunk_write_size_to_hdr(base, need_total, 0);
-        set_next_chunk_hdr_prev(a, base, 1);
+        chunk_write_size_to_hdr(base, need_total);
+        arena_set_next_chunk_P(a, base, 1);
 
         uint8_t *rem = base + need_total;
         size_t rem_sz = csz - need_total;
 
-        chunk_write_size_to_hdr(rem, rem_sz, 1);
+        chunk_write_size_to_hdr(rem, rem_sz);
         chunk_write_ftr(rem, rem_sz);
 
-        ((free_chunk_t*)rem)->links.fd = ((free_chunk_t*)rem)->links.bk = NULL;
-        push_front_to_free_list(a, (free_chunk_t*)rem);
+        ((free_chunk_t*)rem)->fd = ((free_chunk_t*)rem)->bk = NULL;
+        free_list_push_front(a, (free_chunk_t*)rem);
 
         return base;
     } 
     else {
-        remove_from_free_list(a, fc);
-        chunk_write_size_to_hdr(fc, csz, 0);
-        set_next_chunk_hdr_prev(a, fc, 1);
+        free_list_remove(a, fc);
+        chunk_write_size_to_hdr(fc, csz);
+        arena_set_next_chunk_P(a, fc, 1);
         return fc;
     }
 }

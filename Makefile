@@ -2,7 +2,7 @@ CC = gcc-15
 CFLAGS = -std=c11 -Wall -Wextra -O2 -Isrc
 LDLIBS = -lpthread
 
-SRC_OBJS = build/my_alloc.o build/arena.o build/chunk.o build/freelist.o
+SRC_OBJS = build/malloc.o build/arena.o build/freelist.o
 
 TEST0_BIN = build/test0
 TEST1_BIN = build/test1
