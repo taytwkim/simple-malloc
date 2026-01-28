@@ -7,19 +7,22 @@ void *my_malloc(size_t size) {
     if (size == 0) return NULL;
 
     arena_t *a = get_my_arena();
+
     if (!a || !a->base) return NULL;
 
     size_t payload = align_16(size);
-    size_t need = align_16(sizeof(size_t) + payload);   // header + payload
-    size_t usable = need - sizeof(size_t);              // payload + padding for alignment
+    size_t need_total = align_16(sizeof(size_t) + payload);   // header + payload
+    
+    int bin = (int)(need_total / 16) - 2;   // 32->0, 48->1, 64->2 ... smallest normal is 32 (8 hdr + 16 payload -> 24 -> align -> 32)
 
-    int bin = size_to_tcache_bin(usable);
+    if (bin < 0 || bin >= TCACHE_MAX_BINS) bin = -1;
 
     // 1) Try per-thread tcache first
     void *hdr = NULL;
 
     if (bin >= 0) {
         tcache_bin_t *b = &g_tcache[bin];
+
         if (b->head != NULL) {
             free_chunk_t *fc = b->head;
             b->head = fc->fd;
@@ -31,10 +34,10 @@ void *my_malloc(size_t size) {
     // 2) If tcache miss, fall back to arena freelist / bump
     if (!hdr) {
         pthread_mutex_lock(&a->lock);
-        hdr = free_list_try(a, need);
+        hdr = free_list_try(a, need_total);
 
         if (!hdr) {
-            hdr = arena_carve_from_top(a, need); // carve from top
+            hdr = arena_carve_from_top(a, need_total); // if free list miss, carve from top
 
             if (!hdr) {
                 pthread_mutex_unlock(&a->lock);
@@ -57,8 +60,10 @@ void my_free(void *ptr) {
 
     uint8_t *hdr = (uint8_t*)chunk_payload_to_hdr(ptr);
     size_t csz = chunk_get_size(hdr);
-    size_t usable = csz - sizeof(size_t);
-    int bin = size_to_tcache_bin(usable);
+
+    int bin = (int)(csz / 16) - 2;
+
+    if (bin < 0 || bin >= TCACHE_MAX_BINS) bin = -1;
 
     // 1) Try to put small chunks into per-thread tcache
     if (bin >= 0) {
@@ -100,5 +105,6 @@ void my_free(void *ptr) {
 
     ((free_chunk_t*)merged)->fd = ((free_chunk_t*)merged)->bk = NULL;
     free_list_push_front(a, (free_chunk_t*)merged);
+    
     pthread_mutex_unlock(&a->lock);
 }

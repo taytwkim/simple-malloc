@@ -46,7 +46,6 @@ typedef struct free_chunk {
  */
 #define CHUNK_HDR_P_MASK ((size_t) 1)
 
-/* Header & Footer Operations */
 static inline int chunk_get_P(size_t hdr_word) { return (hdr_word & CHUNK_HDR_P_MASK) != 0; }   // hdr_word differentiated from size_t* hdr
 
 static inline void chunk_set_P(void *hdr, int on) {
@@ -71,8 +70,6 @@ static inline void chunk_write_ftr(void *hdr, size_t size_aligned) {
 static inline uint8_t* chunk_hdr_to_payload(void *hdr) { return (uint8_t*)hdr + sizeof(size_t); }
 
 static inline void* chunk_payload_to_hdr(void *ptr) { return (uint8_t*)ptr - sizeof(size_t); }
-
-/* Chunk Operations */
 
 static inline size_t chunk_get_size(void *hdr) { return (*(size_t*)hdr) & CHUNK_HDR_SIZE_MASK; }
 

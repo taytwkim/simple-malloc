@@ -1,7 +1,6 @@
-#include <sys/mman.h>
+#include <sys/mman.h>   // for mmap
 #include <stdio.h>
 #include "arena.h"
-#include "debug.h"
 #include "freelist.h"
 #include "util.h"
 
@@ -40,8 +39,6 @@ void arena_init(arena_t *a, int id) {
     a->free_list = NULL;
 
     pthread_mutex_init(&a->lock, NULL);
-
-    DBG("[arena_init] id=%d base=%p bump=%p end=%p bytes=%zu\n", id, (void*)a->base, (void*)a->bump, (void*)a->end, req);
 }
 
 static void global_init(void) {
@@ -97,13 +94,13 @@ void* arena_carve_from_top(arena_t *a, size_t need_total) {
     return hdr;
 }
 
+/* merge chunk with adjacent free chunks (adjacent in memory, not in the linked list) */
 void* arena_coalesce_free_chunk(arena_t *a, void *hdr) {
     size_t csz = chunk_get_size(hdr);
     void *nxt = get_next_chunk_hdr(hdr);
 
     if ((uint8_t*)nxt < a->bump && chunk_is_free(nxt)) {
-        DBG("[coalesce] right chunk is free, merge with right chunk\n");
-
+        /* merge with right chunk */
         size_t nxt_sz = chunk_get_size(nxt);
         free_list_remove(a, (free_chunk_t*)nxt);
         csz += nxt_sz;
@@ -112,8 +109,7 @@ void* arena_coalesce_free_chunk(arena_t *a, void *hdr) {
     }
 
     if (prev_chunk_is_free(hdr)) {
-        DBG("[coalesce] left chunk is free, merge with left chunk\n");
-
+        /* merge with left chunk */
         uint8_t *p = (uint8_t*)hdr;
         void* prev_footer = (p - sizeof(size_t));
         size_t prev_sz = chunk_get_size(prev_footer);
@@ -127,11 +123,13 @@ void* arena_coalesce_free_chunk(arena_t *a, void *hdr) {
     return hdr;
 }
 
+/* if the free chunk is large enough, split the chunk */
 void* arena_split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total) {
     size_t csz = chunk_get_size(fc);
     const size_t MIN_FREE = get_free_chunk_min_size();
 
     if (csz >= need_total + MIN_FREE) {
+        /* split chunk */
         free_list_remove(a, fc);
 
         uint8_t *base = (uint8_t*)fc;
@@ -148,11 +146,10 @@ void* arena_split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total) {
         free_list_push_front(a, (free_chunk_t*)rem);
 
         return base;
-    } 
-    else {
-        free_list_remove(a, fc);
-        chunk_write_size_to_hdr(fc, csz);
-        arena_set_next_chunk_P(a, fc, 1);
-        return fc;
     }
+
+    /* can't split - just return */
+    free_list_remove(a, fc);
+    arena_set_next_chunk_P(a, fc, 1);        
+    return fc;
 }

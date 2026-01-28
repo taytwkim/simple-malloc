@@ -13,18 +13,4 @@ typedef struct tcache_bin {
 
 static _Thread_local tcache_bin_t g_tcache[TCACHE_MAX_BINS];  // per-thread tcache
 
-static inline int size_to_tcache_bin(size_t usable) {
-    /* Size classes are 16, 32, ...
-     * 
-     * Bin 0: usable in [16 .. 31]
-     * Bin 1: usable in [32 .. 47]
-     * ...
-     */
-
-    size_t idx = usable / 16;
-    if (idx == 0) return -1;               // too small
-    if (idx > TCACHE_MAX_BINS) return -1;  // too big for tcache, try free list
-    return (int)(idx - 1);                 // index is 0-based
-}
-
 #endif
