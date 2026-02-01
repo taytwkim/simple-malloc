@@ -65,8 +65,6 @@ static inline void chunk_write_ftr(void *hdr, size_t size_aligned) {
     *(size_t*)(base + size_aligned - sizeof(size_t)) = (size_aligned & CHUNK_HDR_SIZE_MASK);
 }
 
-/* Pointer Conversion Between Header and Payload */
-
 static inline uint8_t* chunk_hdr_to_payload(void *hdr) { return (uint8_t*)hdr + sizeof(size_t); }
 
 static inline void* chunk_payload_to_hdr(void *ptr) { return (uint8_t*)ptr - sizeof(size_t); }

@@ -21,135 +21,61 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
     static __thread arena_t *t_arena = NULL;
 #endif
 
+heap_t* arena_add_new_heap(arena_t *a) {
+    heap_t* h;
+    return h;
+}
+
 void arena_init(arena_t *a, int id) {
-    size_t req = align_pagesize(g_arena_bytes);
-
-    void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-
-    if (mem == MAP_FAILED) {
-        a->base = a->bump = a->end = NULL;
-        a->free_list = NULL;
-        return;
-    }
-
     a->id = id;
-    a->base = (uint8_t*)mem;
-    a->bump = a->base;
-    a->end = a->base + req;
+    a->heaps = NULL;
+    a->active_heap = NULL;
     a->free_list = NULL;
-
     pthread_mutex_init(&a->lock, NULL);
+
+    heap_t *h = add_new_heap(a);
+    
+    if (!h) return;
+
+    a->heaps = h;
+    a->active_heap = h;
 }
 
 static void global_init(void) {
-#ifdef _OPENMP
-    g_num_arenas = omp_get_max_threads();
-#else
-    g_num_arenas = 1;
-#endif
+    #ifdef _OPENMP
+        g_num_arenas = omp_get_max_threads();
+    #else
+        g_num_arenas = 1;
+    #endif
 
     if (g_num_arenas < 1) g_num_arenas = 1;
+    
     if (g_num_arenas > MAX_NUM_ARENAS) g_num_arenas = MAX_NUM_ARENAS;
 
-    for (int i = 0; i < g_num_arenas; i++) {
+    for (int i = 0; i < g_num_arenas; ++i) {
         arena_init(&g_arenas[i], i);
     }
 }
 
-arena_t *get_my_arena(void) {
+arena_t *arena_from_thread(void) {
     pthread_once(&g_once, global_init);
 
     if (t_arena) return t_arena;
 
     int tid = 0;
 
-#ifdef _OPENMP
-    tid = omp_get_thread_num();
-    if (tid < 0) tid = 0;
-#endif
+    #ifdef _OPENMP
+        tid = omp_get_thread_num();
+        if (tid < 0) tid = 0;
+    #endif
 
     int idx = tid % g_num_arenas;
     t_arena = &g_arenas[idx];
+
     return t_arena;
 }
 
-void arena_set_next_chunk_P(arena_t *a, void *hdr, int prev_in_use) {
-    void *nxt = get_next_chunk_hdr(hdr);
-    if ((uint8_t*)nxt < a->bump) chunk_set_P(nxt, prev_in_use);
-}
-
-void* arena_carve_from_top(arena_t *a, size_t need_total) {
-    uintptr_t start = (uintptr_t)a->bump;
-
-    uintptr_t payload = (start + sizeof(size_t) + 15u) & ~((uintptr_t)15u);
-    uint8_t *hdr = (uint8_t*)(payload - sizeof(size_t));
-
-    if ((size_t)(a->end - hdr) < need_total) return NULL;
-
-    chunk_write_size_to_hdr(hdr, need_total);
-    chunk_set_P(hdr, 1);
-
-    a->bump = hdr + need_total;
-
-    return hdr;
-}
-
-/* merge chunk with adjacent free chunks (adjacent in memory, not in the linked list) */
-void* arena_coalesce_free_chunk(arena_t *a, void *hdr) {
-    size_t csz = chunk_get_size(hdr);
-    void *nxt = get_next_chunk_hdr(hdr);
-
-    if ((uint8_t*)nxt < a->bump && chunk_is_free(nxt)) {
-        /* merge with right chunk */
-        size_t nxt_sz = chunk_get_size(nxt);
-        free_list_remove(a, (free_chunk_t*)nxt);
-        csz += nxt_sz;
-        chunk_write_size_to_hdr(hdr, csz);
-        chunk_write_ftr(hdr, csz);
-    }
-
-    if (prev_chunk_is_free(hdr)) {
-        /* merge with left chunk */
-        uint8_t *p = (uint8_t*)hdr;
-        void* prev_footer = (p - sizeof(size_t));
-        size_t prev_sz = chunk_get_size(prev_footer);
-        void *prv = p - prev_sz;
-        free_list_remove(a, (free_chunk_t*)prv);
-        csz += prev_sz;
-        chunk_write_size_to_hdr(prv, csz);
-        chunk_write_ftr(prv, csz);
-        hdr = prv;
-    }
-    return hdr;
-}
-
-/* if the free chunk is large enough, split the chunk */
-void* arena_split_free_chunk(arena_t *a, free_chunk_t *fc, size_t need_total) {
-    size_t csz = chunk_get_size(fc);
-    const size_t MIN_FREE = get_free_chunk_min_size();
-
-    if (csz >= need_total + MIN_FREE) {
-        /* split chunk */
-        free_list_remove(a, fc);
-
-        uint8_t *base = (uint8_t*)fc;
-        chunk_write_size_to_hdr(base, need_total);
-        arena_set_next_chunk_P(a, base, 1);
-
-        uint8_t *rem = base + need_total;
-        size_t rem_sz = csz - need_total;
-
-        chunk_write_size_to_hdr(rem, rem_sz);
-        chunk_write_ftr(rem, rem_sz);
-
-        ((free_chunk_t*)rem)->fd = ((free_chunk_t*)rem)->bk = NULL;
-        free_list_push_front(a, (free_chunk_t*)rem);
-
-        return base;
-    }
-
-    /* can't split - just return */
-    free_list_remove(a, fc);
-    arena_set_next_chunk_P(a, fc, 1);        
-    return fc;
+arena_t *arena_from_chunk_header(void *hdr) {
+    arena_t *arena;
+    return arena;
 }

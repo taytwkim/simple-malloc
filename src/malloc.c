@@ -37,7 +37,7 @@ void *my_malloc(size_t size) {
         hdr = free_list_try(a, need_total);
 
         if (!hdr) {
-            hdr = arena_carve_from_top(a, need_total); // if free list miss, carve from top
+            hdr = heap_carve_from_bump(a, need_total); // if free list miss, carve from top
 
             if (!hdr) {
                 pthread_mutex_unlock(&a->lock);
@@ -89,12 +89,12 @@ void my_free(void *ptr) {
     chunk_write_size_to_hdr(hdr, csz);
     chunk_write_ftr(hdr, csz);
 
-    void *merged = arena_coalesce_free_chunk(a, hdr);
+    void *merged = heap_coalesce_free_chunk(a, hdr);
 
     size_t msz = chunk_get_size(merged);
     uint8_t *merged_end = (uint8_t*)merged + msz;
 
-    arena_set_next_chunk_P(a, merged, 0);
+    heap_set_next_chunk_P(a, merged, 0);
 
     // if the freed chunk touches the top, don't add to free list, shrink the unexplored region
     if (merged_end == a->bump) {
