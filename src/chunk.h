@@ -24,7 +24,7 @@
 
 typedef struct free_chunk {
     size_t hdr;
-    struct free_chunk *fd, *bk;
+    struct free_chunk *prev, *next;
 } free_chunk_t;
 
 // CHUNK_HDR_SIZE_MASK clears the flag bits (…FFF0)

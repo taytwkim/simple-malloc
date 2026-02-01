@@ -1,7 +1,6 @@
 #include <sys/mman.h>   // for mmap
 #include <stdio.h>
 #include "arena.h"
-#include "freelist.h"
 #include "util.h"
 
 // If OpenMP is enabled (-fopenmp), the compiler defines _OPENMP
@@ -22,7 +21,23 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
 #endif
 
 heap_t* arena_add_new_heap(arena_t *a) {
-    heap_t* h;
+    size_t req = align_pagesize(g_arena_bytes);
+
+    void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    if (mem == MAP_FAILED) {
+        return NULL;
+    }
+
+    heap_t *h = (heap_t *)mem;
+    h->arena = a;
+    h->next  = NULL;
+    
+    uint8_t *payload = (uint8_t *)mem + sizeof(*h);
+
+    h->base = payload;
+    h->bump = h->base;
+    h->end  = (uint8_t *)mem + req;
+
     return h;
 }
 
@@ -33,8 +48,7 @@ void arena_init(arena_t *a, int id) {
     a->free_list = NULL;
     pthread_mutex_init(&a->lock, NULL);
 
-    heap_t *h = add_new_heap(a);
-    
+    heap_t *h = arena_add_new_heap(a);
     if (!h) return;
 
     a->heaps = h;
@@ -78,6 +92,6 @@ arena_t *arena_from_thread(void) {
 }
 
 arena_t *arena_from_chunk_header(void *hdr) {
-    arena_t *arena;
-    return arena;
+    arena_t* a = arena_from_thread();
+    return a;
 }

@@ -1,4 +1,5 @@
 #include "arena.h"
+#include "heap.h"
 #include "freelist.h"
 #include "tcache.h"
 #include "util.h"
@@ -8,9 +9,9 @@ void *my_malloc(size_t size) {
 
     ensure_global_init();
 
-    arena_t *a = get_my_arena();
+    arena_t *a = arena_from_thread();
 
-    if (!a || !a->base) return NULL;
+    if (!a) return NULL;
 
     size_t payload = align_16(size);
     size_t need_total = align_16(sizeof(size_t) + payload);   // header + payload
@@ -27,7 +28,7 @@ void *my_malloc(size_t size) {
 
         if (b->head != NULL) {
             free_chunk_t *fc = b->head;
-            b->head = fc->fd;
+            b->head = fc->prev;
             b->count--;
             hdr = (void*)fc;
         }
@@ -39,7 +40,7 @@ void *my_malloc(size_t size) {
         hdr = free_list_try(a, need_total);
 
         if (!hdr) {
-            hdr = heap_carve_from_bump(a, need_total); // if free list miss, carve from top
+            hdr = heap_carve_from_bump(a->active_heap, need_total); // if free list miss, carve from top
 
             if (!hdr) {
                 pthread_mutex_unlock(&a->lock);
@@ -59,8 +60,8 @@ void my_free(void *ptr) {
 
     ensure_global_init();
 
-    arena_t *a = get_my_arena();
-    if (!a || !a->base) return;
+    arena_t *a = arena_from_thread();
+    if (!a) return;
 
     uint8_t *hdr = (uint8_t*)chunk_payload_to_hdr(ptr);
     size_t csz = chunk_get_size(hdr);
@@ -74,12 +75,12 @@ void my_free(void *ptr) {
         tcache_bin_t *b = &g_tcache[bin];
 
         if (b->count < TCACHE_MAX_COUNT) {
-            free_chunk_t *fc = (free_chunk_t*)hdr;
+            free_chunk_t *fc = (free_chunk_t*) hdr;
 
             // IMPORTANT: do NOT mark as free, do NOT set footer, do NOT coalesce.
             // Chunk stays "in-use" from the global allocator's point of view.
             
-            fc->fd = b->head;
+            fc->prev = b->head;
             b->head = fc;
             b->count++;
             
@@ -93,21 +94,21 @@ void my_free(void *ptr) {
     chunk_write_size_to_hdr(hdr, csz);
     chunk_write_ftr(hdr, csz);
 
-    void *merged = heap_coalesce_free_chunk(a, hdr);
+    void *merged = heap_coalesce_free_chunk(a->active_heap, hdr);
 
     size_t msz = chunk_get_size(merged);
     uint8_t *merged_end = (uint8_t*)merged + msz;
 
-    heap_set_next_chunk_P(a, merged, 0);
+    heap_set_next_chunk_P(a->active_heap, merged, 0);
 
     // if the freed chunk touches the top, don't add to free list, shrink the unexplored region
-    if (merged_end == a->bump) {
-        a->bump = (uint8_t*)merged;
+    if (merged_end == a->active_heap->bump) {
+        a->active_heap->bump = (uint8_t*)merged;
         pthread_mutex_unlock(&a->lock);
         return;
     }
 
-    ((free_chunk_t*)merged)->fd = ((free_chunk_t*)merged)->bk = NULL;
+    ((free_chunk_t*)merged)->prev = ((free_chunk_t*)merged)->next = NULL;
     free_list_push_front(a, (free_chunk_t*)merged);
     
     pthread_mutex_unlock(&a->lock);

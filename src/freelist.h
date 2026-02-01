@@ -2,6 +2,7 @@
 #define MYALLOC_FREELIST_H
 
 #include "arena.h"
+#include "heap.h"
 
 void free_list_remove(arena_t *a, free_chunk_t *fc);
 

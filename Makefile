@@ -2,7 +2,9 @@ CC = gcc-15
 CFLAGS = -std=c11 -Wall -Wextra -O2 -Isrc
 LDLIBS = -lpthread
 
-SRC_OBJS = build/malloc.o build/arena.o build/freelist.o
+# Build all src/*.c automatically so newly added modules get linked.
+SRCS = $(wildcard src/*.c)
+SRC_OBJS = $(patsubst src/%.c,build/%.o,$(SRCS))
 
 TEST0_BIN = build/test0
 TEST1_BIN = build/test1
