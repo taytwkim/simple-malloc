@@ -23,4 +23,6 @@ arena_t *arena_from_thread(void);
 
 arena_t *arena_from_chunk_header(void *hdr);
 
+void ensure_global_init(void);
+
 #endif

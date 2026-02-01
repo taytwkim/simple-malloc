@@ -57,9 +57,11 @@ static void global_init(void) {
     }
 }
 
-arena_t *arena_from_thread(void) {
+void ensure_global_init(void) {
     pthread_once(&g_once, global_init);
+}
 
+arena_t *arena_from_thread(void) {
     if (t_arena) return t_arena;
 
     int tid = 0;

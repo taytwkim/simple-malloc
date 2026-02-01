@@ -6,6 +6,8 @@
 void *my_malloc(size_t size) {
     if (size == 0) return NULL;
 
+    ensure_global_init();
+
     arena_t *a = get_my_arena();
 
     if (!a || !a->base) return NULL;
@@ -54,6 +56,8 @@ void *my_malloc(size_t size) {
 
 void my_free(void *ptr) {
     if (!ptr) return;
+
+    ensure_global_init();
 
     arena_t *a = get_my_arena();
     if (!a || !a->base) return;
