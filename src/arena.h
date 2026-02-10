@@ -10,14 +10,14 @@
 typedef struct arena {
     int id;
     heap_t *heaps;
-    heap_t *active_heap;
+    heap_t *active_heap; // for now, let's assume that the active_heap is always the heap that was last added
     free_chunk_t *free_list;
     pthread_mutex_t lock;
 } arena_t;
 
-heap_t* arena_add_new_heap(arena_t *a);
+int arena_add_new_heap(arena_t *a);
 
-void arena_init(arena_t *a, int id);
+int arena_init(arena_t *a, int id);
 
 arena_t *arena_from_thread(void);
 

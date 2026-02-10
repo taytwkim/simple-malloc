@@ -20,13 +20,11 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
     static __thread arena_t *t_arena = NULL;
 #endif
 
-heap_t* arena_add_new_heap(arena_t *a) {
+int arena_add_new_heap(arena_t *a) {
     size_t req = align_pagesize(g_arena_bytes);
 
     void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (mem == MAP_FAILED) {
-        return NULL;
-    }
+    if (mem == MAP_FAILED) return -1;
 
     heap_t *h = (heap_t *)mem;
     h->arena = a;
@@ -36,23 +34,38 @@ heap_t* arena_add_new_heap(arena_t *a) {
 
     h->base = payload;
     h->bump = h->base;
-    h->end  = (uint8_t *)mem + req;
+    h->end = (uint8_t *)mem + req;
 
-    return h;
+    // Append instead of overwrite.
+    if (a->heaps == NULL) {
+        a->heaps = h;
+    } 
+    else {
+        heap_t *curr = a->heaps;
+        while (curr->next != NULL) curr = curr->next;
+        curr->next = h;
+    }
+
+    a->active_heap = h; // For now, let's say active heap is always the most recently added heap.
+
+    return 0;
 }
 
-void arena_init(arena_t *a, int id) {
+/*
+ * TO DO: Update arena_init to return an int instead of void.
+ * Prevent arena_init from failing silently.
+ */
+int arena_init(arena_t *a, int id) {
     a->id = id;
     a->heaps = NULL;
     a->active_heap = NULL;
     a->free_list = NULL;
     pthread_mutex_init(&a->lock, NULL);
 
-    heap_t *h = arena_add_new_heap(a);
-    if (!h) return;
+    int add_heap_succeeded = arena_add_new_heap(a);
+    if (add_heap_succeeded < 0) return -1;
 
-    a->heaps = h;
-    a->active_heap = h;
+    return 0;
 }
 
 static void global_init(void) {
@@ -75,6 +88,9 @@ void ensure_global_init(void) {
     pthread_once(&g_once, global_init);
 }
 
+/* 
+ * TO DO: We have to fix arena_from_thread and arena_from_chunk_header
+ */
 arena_t *arena_from_thread(void) {
     if (t_arena) return t_arena;
 
