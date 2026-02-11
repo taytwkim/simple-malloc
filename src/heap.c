@@ -3,10 +3,10 @@
 #include "freelist.h"
 
 /* TO DO: Implement this!! */
-heap_t *heap_from_chunk_header(void *hdr) {
-    arena_t *a = arena_from_chunk_header(hdr);
-    return a->heaps;
-}
+// heap_t *heap_from_chunk_header(void *hdr) {
+//     arena_t *a = arena_from_chunk_header(hdr);
+//     return a->heaps;
+// }
 
 void heap_set_next_chunk_P(heap_t *h, void *hdr, int P) {
     void *nxt = get_next_chunk_hdr(hdr);
@@ -17,16 +17,17 @@ void heap_set_next_chunk_P(heap_t *h, void *hdr, int P) {
 void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     uintptr_t start = (uintptr_t) h->bump;
 
-    uintptr_t payload = (start + sizeof(size_t) + 15u) & ~((uintptr_t)15u);
-    uint8_t *hdr = (uint8_t*) (payload - sizeof(size_t));
+    // Ensure payload is 16-byte aligned; header is chunk_prefix_t bytes before payload.
+    uintptr_t payload = (start + sizeof(chunk_prefix_t) + 15u) & ~((uintptr_t)15u);
+    uint8_t *hdr = (uint8_t*)(payload - sizeof(chunk_prefix_t));
 
-    if ((size_t) (h->end - hdr) < need_total) return NULL;
+    if ((size_t)(h->end - hdr) < need_total) return NULL;
 
     chunk_write_size_to_hdr(hdr, need_total);
     chunk_set_P(hdr, 1);
+    chunk_set_heap(hdr, h);
 
     h->bump = hdr + need_total;
-
     return hdr;
 }
 
@@ -68,25 +69,33 @@ void* heap_split_free_chunk(heap_t *h, free_chunk_t *fc, size_t need) {
         /* split chunk */
         free_list_remove(h->arena, fc);
 
-        uint8_t *base = (uint8_t*) fc;
+        uint8_t *base = (uint8_t*)fc;
+
+        // allocated chunk header
         chunk_write_size_to_hdr(base, need);
+        chunk_set_heap(base, h);
         heap_set_next_chunk_P(h, base, 1);
 
+        // remainder chunk
         uint8_t *rem = base + need;
         size_t rem_sz = csz - need;
 
         chunk_write_size_to_hdr(rem, rem_sz);
         chunk_write_ftr(rem, rem_sz);
+        chunk_set_heap(rem, h);
 
-        ((free_chunk_t*) rem)->prev = ((free_chunk_t*) rem)->next = NULL;
-        free_list_push_front(h->arena, (free_chunk_t*) rem);
+        ((free_chunk_t*)rem)->prev = NULL;
+        ((free_chunk_t*)rem)->next = NULL;
+        free_list_push_front(h->arena, (free_chunk_t*)rem);
 
         return base;
     }
 
-    /* can't split - just return */
+    /* can't split - allocate whole chunk */
     free_list_remove(h->arena, fc);
-    heap_set_next_chunk_P(h, fc, 1);   
+
+    chunk_set_heap(fc, h);
+    heap_set_next_chunk_P(h, fc, 1);
 
     return fc;
 }

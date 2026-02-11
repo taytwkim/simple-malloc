@@ -120,7 +120,7 @@ arena_t *arena_from_thread(void) {
 }
 
 /* for free, we want to find the right arena/heap to return */
-arena_t *arena_from_chunk_header(void *hdr) {
-    arena_t* a = arena_from_thread();
-    return a;
-}
+// arena_t *arena_from_chunk_header(void *hdr) {
+//     arena_t* a = arena_from_thread();
+//     return a;
+// }

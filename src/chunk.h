@@ -33,7 +33,9 @@ typedef struct chunk_prefix {
 
 typedef struct free_chunk {
     size_t hdr;
-    struct free_chunk *prev, *next;
+    heap_t *heap;
+    struct free_chunk *prev;
+    struct free_chunk *next;
 } free_chunk_t;
 
 // CHUNK_HDR_SIZE_MASK clears the flag bits (…FFF0)
@@ -74,21 +76,42 @@ static inline void chunk_write_ftr(void *hdr, size_t size_aligned) {
     *(size_t*)(base + size_aligned - sizeof(size_t)) = (size_aligned & CHUNK_HDR_SIZE_MASK);
 }
 
-static inline uint8_t* chunk_hdr_to_payload(void *hdr) { return (uint8_t*)hdr + sizeof(size_t); }
+static inline uint8_t* chunk_hdr_to_payload(void *hdr) { 
+    return (uint8_t*)hdr + sizeof(chunk_prefix_t);
+}
 
-static inline void* chunk_payload_to_hdr(void *ptr) { return (uint8_t*)ptr - sizeof(size_t); }
+static inline void* chunk_payload_to_hdr(void *ptr) { 
+    return (uint8_t*)ptr - sizeof(chunk_prefix_t);
+}
 
-static inline size_t chunk_get_size(void *hdr) { return (*(size_t*)hdr) & CHUNK_HDR_SIZE_MASK; }
+static inline size_t chunk_get_size(void *hdr) { 
+    return (*(size_t*)hdr) & CHUNK_HDR_SIZE_MASK; 
+}
 
-static inline int prev_chunk_is_free(void *hdr) { return !chunk_get_P(*(size_t*)hdr); }
+static inline int prev_chunk_is_free(void *hdr) { 
+    return !chunk_get_P(*(size_t*)hdr); 
+}
 
-static inline void* get_next_chunk_hdr(void *hdr) { return (uint8_t*)hdr + chunk_get_size(hdr); }
+static inline void* get_next_chunk_hdr(void *hdr) { 
+    return (uint8_t*)hdr + chunk_get_size(hdr); 
+}
 
 static inline int chunk_is_free(void *hdr) {
     void *nxt = get_next_chunk_hdr(hdr);
     return prev_chunk_is_free(nxt);
 }
 
-static inline size_t get_free_chunk_min_size(void) { return align_16(sizeof(free_chunk_t) + sizeof(size_t)); }
+static inline heap_t* chunk_get_heap(void *hdr) { 
+    return ((chunk_prefix_t*)hdr)->heap; 
+}
+
+static inline void chunk_set_heap(void *hdr, heap_t *h) { 
+    ((chunk_prefix_t*)hdr)->heap = h; 
+}
+
+static inline size_t get_free_chunk_min_size(void) { 
+    // free_chunk itself doesn't include the header, so we add sizeof(size_t)
+    return align_16(sizeof(free_chunk_t) + sizeof(size_t)); 
+}
 
 #endif

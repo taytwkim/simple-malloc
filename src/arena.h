@@ -23,7 +23,7 @@ arena_t *arena_from_thread(void);
  * Note that freelist functions need the arena, but finding the arena is easy if you find the heap (we just do h->arena)
  * This function will eventually be removed, it's logic is wrong now anyway.
  */
-arena_t *arena_from_chunk_header(void *hdr);
+// arena_t *arena_from_chunk_header(void *hdr);
 
 void ensure_global_init(void);
 
