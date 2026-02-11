@@ -1,5 +1,4 @@
 #include <sys/mman.h>   // for mmap
-#include <stdio.h>
 #include "arena.h"
 #include "util.h"
 
@@ -20,7 +19,7 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
     static __thread arena_t *t_arena = NULL;
 #endif
 
-int arena_add_new_heap(arena_t *a) {
+static int arena_add_new_heap(arena_t *a) {
     size_t req = align_pagesize(g_arena_bytes);
 
     void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
@@ -36,7 +35,6 @@ int arena_add_new_heap(arena_t *a) {
     h->bump = h->base;
     h->end = (uint8_t *)mem + req;
 
-    // Append instead of overwrite.
     if (a->heaps == NULL) {
         a->heaps = h;
     } 
@@ -51,11 +49,21 @@ int arena_add_new_heap(arena_t *a) {
     return 0;
 }
 
-/*
- * TO DO: Update arena_init to return an int instead of void.
- * Prevent arena_init from failing silently.
- */
-int arena_init(arena_t *a, int id) {
+static void arena_unmap_all_heaps(arena_t *a) {
+    heap_t *h = a->heaps;
+
+    while (h) {
+        heap_t *next = h->next;
+        size_t map_size = (size_t)((uint8_t *)h->end - (uint8_t *)h);
+        (void)munmap((void *)h, map_size);
+        h = next;
+    }
+    
+    a->heaps = NULL;
+    a->active_heap = NULL;
+}
+
+static int arena_init(arena_t *a, int id) {
     a->id = id;
     a->heaps = NULL;
     a->active_heap = NULL;
@@ -80,7 +88,13 @@ static void global_init(void) {
     if (g_num_arenas > MAX_NUM_ARENAS) g_num_arenas = MAX_NUM_ARENAS;
 
     for (int i = 0; i < g_num_arenas; ++i) {
-        arena_init(&g_arenas[i], i);
+        if (arena_init(&g_arenas[i], i) < 0) {
+            // clean up if arena_init fails
+            for (int j = 0; j < i; ++j) {
+                arena_unmap_all_heaps(&g_arenas[j]);
+            }
+            return;
+        }
     }
 }
 
@@ -88,9 +102,7 @@ void ensure_global_init(void) {
     pthread_once(&g_once, global_init);
 }
 
-/* 
- * TO DO: We have to fix arena_from_thread and arena_from_chunk_header
- */
+/* for malloc, we want to allocate from the thread-specific arena */
 arena_t *arena_from_thread(void) {
     if (t_arena) return t_arena;
 
@@ -107,6 +119,7 @@ arena_t *arena_from_thread(void) {
     return t_arena;
 }
 
+/* for free, we want to find the right arena/heap to return */
 arena_t *arena_from_chunk_header(void *hdr) {
     arena_t* a = arena_from_thread();
     return a;

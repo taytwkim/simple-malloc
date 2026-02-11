@@ -7,9 +7,11 @@
 
 /* 
  * In-use:    [ header (size | flags) ]       8 bytes (in a 64 bit machine), the last four bits are flags
+ *            [ owning heap ptr       ]       8 bytes
  *            [ payload ...           ]
  * 
  * Free:      [ header (size | flags) ]       8 bytes
+ *            [ owning heap ptr       ]       8 bytes
  *            [ fd                    ]       8 bytes, forward pointer to the next free chunk
  *            [ bk                    ]       8 bytes, backward pointer to the prev free chunk
  *            ... 
@@ -21,6 +23,13 @@
  * Note: the reason why we can store the chunk size and the flags in a single header is because the chunk size is 16 aligned in a 64-bit machine.
  * This means that the low four bits of the chunk size will always be zero - so we can use these bits to store metadata.
  */
+
+typedef struct heap heap_t;
+
+typedef struct chunk_prefix {
+    size_t hdr;
+    heap_t *heap;
+} chunk_prefix_t;
 
 typedef struct free_chunk {
     size_t hdr;

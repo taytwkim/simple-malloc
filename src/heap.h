@@ -14,6 +14,7 @@ typedef struct heap {
     uint8_t *end;
 } heap_t;
 
+/* TO DO: Implement this!! */
 heap_t *heap_from_chunk_header(void *hdr);
 
 void heap_set_next_chunk_P(heap_t *h, void *hdr, int P);
