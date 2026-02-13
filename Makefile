@@ -8,8 +8,9 @@ SRC_OBJS = $(patsubst src/%.c,build/%.o,$(SRCS))
 
 TEST0_BIN = build/test0
 TEST1_BIN = build/test1
+TEST2_BIN = build/test2
 
-all: $(TEST0_BIN) $(TEST1_BIN)
+all: $(TEST0_BIN) $(TEST1_BIN) $(TEST2_BIN) 
 
 build:
 	mkdir -p build
@@ -23,6 +24,9 @@ $(TEST0_BIN): tests/test0.c $(SRC_OBJS) | build
 # OpenMP build for test1 (GCC uses libgomp; no -lomp needed)
 $(TEST1_BIN): tests/test1.c $(SRC_OBJS) | build
 	$(CC) $(CFLAGS) -fopenmp $^ -o $@ $(LDLIBS)
+
+$(TEST2_BIN): tests/test2.c $(SRC_OBJS) | build
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 run0: $(TEST0_BIN)
 	./$(TEST0_BIN)

@@ -15,6 +15,8 @@ typedef struct arena {
     pthread_mutex_t lock;
 } arena_t;
 
+int arena_add_new_heap(arena_t *a);
+
 /* for malloc, we want to allocate from the thread-specific arena */
 arena_t *arena_from_thread(void);
 

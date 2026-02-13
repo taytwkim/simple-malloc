@@ -1,10 +1,13 @@
 #include "arena.h"
-#include "heap.h"
+#include "debug.h"
 #include "freelist.h"
+#include "heap.h"
 #include "tcache.h"
 #include "util.h"
 
 void *my_malloc(size_t size) {
+    safe_log_msg("[smalloc]: entered malloc\n");
+
     if (size == 0) return NULL;
 
     ensure_global_init();
@@ -56,6 +59,8 @@ void *my_malloc(size_t size) {
 }
 
 void my_free(void *ptr) {
+    safe_log_msg("[smalloc]: entered free\n");
+
     if (!ptr) return;
 
     ensure_global_init();

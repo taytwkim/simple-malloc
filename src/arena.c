@@ -19,7 +19,7 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
     static __thread arena_t *t_arena = NULL;
 #endif
 
-static int arena_add_new_heap(arena_t *a) {
+int arena_add_new_heap(arena_t *a) {
     size_t req = align_pagesize(g_arena_bytes);
 
     void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
@@ -118,9 +118,3 @@ arena_t *arena_from_thread(void) {
 
     return t_arena;
 }
-
-/* for free, we want to find the right arena/heap to return */
-// arena_t *arena_from_chunk_header(void *hdr) {
-//     arena_t* a = arena_from_thread();
-//     return a;
-// }

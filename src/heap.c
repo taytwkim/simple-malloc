@@ -2,12 +2,6 @@
 #include "arena.h"
 #include "freelist.h"
 
-/* TO DO: Implement this!! */
-// heap_t *heap_from_chunk_header(void *hdr) {
-//     arena_t *a = arena_from_chunk_header(hdr);
-//     return a->heaps;
-// }
-
 void heap_set_next_chunk_P(heap_t *h, void *hdr, int P) {
     void *nxt = get_next_chunk_hdr(hdr);
     if ((uint8_t*)nxt < h->bump) chunk_set_P(nxt, P);
@@ -21,7 +15,16 @@ void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     uintptr_t payload = (start + sizeof(chunk_prefix_t) + 15u) & ~((uintptr_t)15u);
     uint8_t *hdr = (uint8_t*)(payload - sizeof(chunk_prefix_t));
 
-    if ((size_t)(h->end - hdr) < need_total) return NULL;
+    if ((size_t)(h->end - hdr) < need_total) {
+        int status = arena_add_new_heap(h->arena);
+
+        if (status == 0) {
+            return heap_carve_from_bump(h->arena->active_heap, need_total);
+        }
+        else {
+            return NULL;
+        }
+    }
 
     chunk_write_size_to_hdr(hdr, need_total);
     chunk_set_P(hdr, 1);
