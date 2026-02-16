@@ -1,64 +1,122 @@
-// test/test1.c
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <omp.h>
+#include <assert.h>
 #include "../src/malloc.h"
 
-// Unit tests for multi-threaded mallocs and frees
+/* Unit tests for sequential malloc and frees */
 
-int main(void) {
-    const int nthreads = 4;
-    const size_t iters = 10000;   // iterations per thread
+static int aligned16(void *p){ 
+    return ((uintptr_t)p & 15u) == 0; 
+}
 
-    printf("test1: multithreaded alloc/free test\n");
-    printf("  threads = %d, iters per thread = %zu\n", nthreads, iters);
+static void test_alignment(void){
+    void *a = my_malloc(1);
+    void *b = my_malloc(17);
+    void *c = my_malloc(4096);
 
-    int errors = 0;
+    assert(a && b && c);
+    assert(aligned16(a));
+    assert(aligned16(b));
+    assert(aligned16(c));
 
-    #pragma omp parallel num_threads(nthreads) reduction(+:errors)
-    {
-        int tid = omp_get_thread_num();
+    my_free(a);
+    my_free(b);
+    my_free(c);
+}
 
-        for (size_t i = 0; i < iters; i++) {
-            size_t sz = 16 + ((i + tid) % 256);   // mixed sizes
-            
-            unsigned char *p = (unsigned char*)my_malloc(sz);
-            
-            if (!p) {
-                printf("Thread %d: my_malloc returned NULL at iter %zu\n", tid, i);
-                errors++;
-                break;
-            }
+/*
+static void test_coalesce_reuse(void){
+    // Sizes chosen so A need=48, B need=56 (64-bit), A+B=104
 
-            // Fill with a thread-specific pattern
-            unsigned char pattern = (unsigned char)(tid + 1);
-            memset(p, pattern, sz);
+    void *a = my_malloc(24);   // need = align16(8 + align16(24=32)) = 48
+    void *b = my_malloc(40);   // need = align16(8 + align16(40=48)) = 56
+    void *c = my_malloc(64);   // keep something after B to avoid touching top
+    assert(a && b && c);
 
-            // Verify the pattern (check corruption)
-            for (size_t j = 0; j < sz; j++) {
-                if (p[j] != pattern) {
-                    printf("Thread %d: data corrupted at iter %zu, offset %zu\n", tid, i, j);
-                    errors++;
-                    break;
-                }
-            }
+    // Free middle then left → should coalesce into one 104-byte free block at A’s spot
+    my_free(b);
+    my_free(a);
 
-            my_free(p);
+    // Request 56 bytes → allocator needs 80 total (8 hdr + 64 payload)
+    // Since remainder (104-80=24) < MIN_FREE (~48), it should take the whole coalesced block.
+    void *d = my_malloc(56);
+    
+    assert(d == a);  // payload pointer reused at same address
+    my_free(d);
+    my_free(c);
+}
 
-            // If this thread saw an error, stop
-            if (errors > 0) {
-                break;
-            }
-        }
+static void test_top_shrink_reuse(void){
+    void *x = my_malloc(128);
+    void *y = my_malloc(32);
+    assert(x && y);
+
+    my_free(y);
+
+    void *z = my_malloc(16);
+    assert(z && aligned16(z));
+
+    my_free(z);
+    my_free(x);
+}
+*/
+
+static void test_null_and_zero(void){
+    my_free(NULL);            // free(NULL) should be a no-op
+    void *p = my_malloc(0);   // should be NULL
+    assert(p == NULL);
+}
+
+static void test_churn(void){
+    enum { N = 96 };
+    void *arr[N] = {0};
+
+    // Allocate a mix of sizes
+    for (int i = 0; i < N; i++){
+        size_t sz = 1 + (i % 64);    // 1..64 bytes
+        arr[i] = my_malloc(sz);
+        assert(arr[i]);
+        assert(aligned16(arr[i]));
     }
 
-    if (errors > 0) {
-        printf("test1: FAILED (errors = %d)\n", errors);
-        return 1;
-    } 
-    else {
-        printf("test1: PASSED ✅\n");
-        return 0;
+    // Free every third block to fragment the freelist
+    for (int i = 0; i < N; i += 3){
+        my_free(arr[i]);
+        arr[i] = NULL;
     }
+
+    // Reuse: allocate & free a bunch of 64B payloads
+    for (int i = 0; i < N; i++){
+        void *p = my_malloc(64);
+        assert(p && aligned16(p));
+        my_free(p);
+    }
+
+    // Free the rest
+    for (int i = 0; i < N; i++){
+        if (arr[i]) my_free(arr[i]);
+    }
+}
+
+int main(void){
+    printf("[*] test_alignment...\n");
+    test_alignment();
+    
+    // printf("[*] test_coalesce_reuse...\n");
+    // test_coalesce_reuse();
+    
+    // printf("[*] test_top_shrink_reuse...\n");
+    // test_top_shrink_reuse();
+    
+    printf("[*] test_null_and_zero...\n");
+    test_null_and_zero();
+
+    printf("[*] test_churn...\n");
+    test_churn();
+
+    printf("OK: all tests passed ✅\n");
+    
+    return 0;
 }

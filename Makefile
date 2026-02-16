@@ -21,12 +21,11 @@ build/%.o: src/%.c | build
 $(TEST0_BIN): tests/test0.c $(SRC_OBJS) | build
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
-# OpenMP build for test1 (GCC uses libgomp; no -lomp needed)
 $(TEST1_BIN): tests/test1.c $(SRC_OBJS) | build
-	$(CC) $(CFLAGS) -fopenmp $^ -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 $(TEST2_BIN): tests/test2.c $(SRC_OBJS) | build
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) -fopenmp $^ -o $@ $(LDLIBS)
 
 run0: $(TEST0_BIN)
 	./$(TEST0_BIN)
