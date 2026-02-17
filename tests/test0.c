@@ -1,12 +1,21 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include "../src/malloc.h"
 
-int main(void){
-    void *p = my_malloc(17);
-    my_free(p);
+int main(void) {
+    // Calling malloc (intercepted by libsmalloc.so)
+    void *p = malloc(17);
     
+    // Explicitly print the result to ensure the call wasn't optimized away
+    if (p) {
+        printf("[test0] Allocated 17 bytes at address: %p\n", p);
+    } else {
+        printf("[test0] Malloc failed\n");
+    }
+
+    // Calling free
+    free(p);
+    
+    printf("[test0] Finished successfully\n");
     return 0;
 }

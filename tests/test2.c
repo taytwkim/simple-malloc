@@ -23,7 +23,7 @@ int main(void) {
         for (size_t i = 0; i < iters; i++) {
             size_t sz = 16 + ((i + tid) % 256);   // mixed sizes
             
-            unsigned char *p = (unsigned char*)my_malloc(sz);
+            unsigned char *p = (unsigned char*)malloc(sz);
             
             if (!p) {
                 printf("Thread %d: my_malloc returned NULL at iter %zu\n", tid, i);
@@ -44,7 +44,7 @@ int main(void) {
                 }
             }
 
-            my_free(p);
+            free(p);
 
             // If this thread saw an error, stop
             if (errors > 0) {

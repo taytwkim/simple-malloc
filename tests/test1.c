@@ -12,18 +12,18 @@ static int aligned16(void *p){
 }
 
 static void test_alignment(void){
-    void *a = my_malloc(1);
-    void *b = my_malloc(17);
-    void *c = my_malloc(4096);
+    void *a = malloc(1);
+    void *b = malloc(17);
+    void *c = malloc(4096);
 
     assert(a && b && c);
     assert(aligned16(a));
     assert(aligned16(b));
     assert(aligned16(c));
 
-    my_free(a);
-    my_free(b);
-    my_free(c);
+    free(a);
+    free(b);
+    free(c);
 }
 
 /*
@@ -64,8 +64,8 @@ static void test_top_shrink_reuse(void){
 */
 
 static void test_null_and_zero(void){
-    my_free(NULL);            // free(NULL) should be a no-op
-    void *p = my_malloc(0);   // should be NULL
+    free(NULL);            // free(NULL) should be a no-op
+    void *p = malloc(0);   // should be NULL
     assert(p == NULL);
 }
 
@@ -76,27 +76,27 @@ static void test_churn(void){
     // Allocate a mix of sizes
     for (int i = 0; i < N; i++){
         size_t sz = 1 + (i % 64);    // 1..64 bytes
-        arr[i] = my_malloc(sz);
+        arr[i] = malloc(sz);
         assert(arr[i]);
         assert(aligned16(arr[i]));
     }
 
     // Free every third block to fragment the freelist
     for (int i = 0; i < N; i += 3){
-        my_free(arr[i]);
+        free(arr[i]);
         arr[i] = NULL;
     }
 
     // Reuse: allocate & free a bunch of 64B payloads
     for (int i = 0; i < N; i++){
-        void *p = my_malloc(64);
+        void *p = malloc(64);
         assert(p && aligned16(p));
-        my_free(p);
+        free(p);
     }
 
     // Free the rest
     for (int i = 0; i < N; i++){
-        if (arr[i]) my_free(arr[i]);
+        if (arr[i]) free(arr[i]);
     }
 }
 

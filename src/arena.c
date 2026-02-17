@@ -1,6 +1,8 @@
+#define _GNU_SOURCE // Required for MAP_ANONYMOUS on Linux
 #include <sys/mman.h>   // for mmap
 #include "arena.h"
 #include "util.h"
+#include <unistd.h> // For sysconf or getpagesize
 
 // If OpenMP is enabled (-fopenmp), the compiler defines _OPENMP
 #ifdef _OPENMP
@@ -22,7 +24,9 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
 int arena_add_new_heap(arena_t *a) {
     size_t req = align_pagesize(g_arena_bytes);
 
-    void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    // void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
     if (mem == MAP_FAILED) return -1;
 
     heap_t *h = (heap_t *)mem;

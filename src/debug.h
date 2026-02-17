@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#define SMALLOC_VERBOSE 1 
+#define SMALLOC_VERBOSE 1
 
 static inline size_t safe_strlen(const char *s) {
     size_t len = 0;
@@ -12,9 +12,15 @@ static inline size_t safe_strlen(const char *s) {
 }
 
 // Usage: safe_log_msg("smalloc: running global_init\n");
+// static inline void safe_log_msg(const char *msg) {
+//     if (SMALLOC_VERBOSE && msg) {
+//         write(STDERR_FILENO, msg, safe_strlen(msg));
+//     }
+// }
+
 static inline void safe_log_msg(const char *msg) {
     if (SMALLOC_VERBOSE && msg) {
-        write(STDERR_FILENO, msg, safe_strlen(msg));
+        write(1, msg, safe_strlen(msg));
     }
 }
 

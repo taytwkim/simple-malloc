@@ -5,7 +5,7 @@
 #include "tcache.h"
 #include "util.h"
 
-void *my_malloc(size_t size) {
+void *malloc(size_t size) {
     safe_log_msg("[malloc]: entered malloc\n");
 
     if (size == 0) {
@@ -74,7 +74,7 @@ void *my_malloc(size_t size) {
     return ret;
 }
 
-void my_free(void *ptr) {
+void free(void *ptr) {
     safe_log_msg("[free]: entered free\n");
 
     if (!ptr) {

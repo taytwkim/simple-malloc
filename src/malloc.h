@@ -3,7 +3,7 @@
 
 #include <stddef.h> // for size_t
 
-void *my_malloc(size_t size);
-void my_free(void *ptr);
+void *malloc(size_t size);
+void free(void *ptr);
 
 #endif

@@ -1,16 +1,18 @@
-CC = gcc-15
-CFLAGS = -std=c11 -Wall -Wextra -O2 -Isrc
+CC = gcc
+CFLAGS = -std=c11 -Wall -Wextra -O2 -Isrc -fPIC -D_GNU_SOURCE
 LDLIBS = -lpthread
 
-# Build all src/*.c automatically so newly added modules get linked.
-SRCS = $(wildcard src/*.c)
-SRC_OBJS = $(patsubst src/%.c,build/%.o,$(SRCS))
+SRCS = src/arena.c src/freelist.c src/heap.c src/malloc.c
+OBJS = $(patsubst src/%.c,build/%.o,$(SRCS))
+
+LIB_NAME = libsmalloc.so
+LIB_PATH = build/$(LIB_NAME)
 
 TEST0_BIN = build/test0
 TEST1_BIN = build/test1
 TEST2_BIN = build/test2
 
-all: $(TEST0_BIN) $(TEST1_BIN) $(TEST2_BIN) 
+all: build $(LIB_PATH) $(TEST0_BIN) $(TEST1_BIN) $(TEST2_BIN)
 
 build:
 	mkdir -p build
@@ -18,22 +20,28 @@ build:
 build/%.o: src/%.c | build
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TEST0_BIN): tests/test0.c $(SRC_OBJS) | build
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+$(LIB_PATH): $(OBJS)
+	$(CC) -shared -o $@ $^ $(LDLIBS)
 
-$(TEST1_BIN): tests/test1.c $(SRC_OBJS) | build
-	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+$(TEST0_BIN): tests/test0.c | build
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS)
 
-$(TEST2_BIN): tests/test2.c $(SRC_OBJS) | build
-	$(CC) $(CFLAGS) -fopenmp $^ -o $@ $(LDLIBS)
+$(TEST1_BIN): tests/test1.c | build
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS)
 
-run0: $(TEST0_BIN)
-	./$(TEST0_BIN)
+$(TEST2_BIN): tests/test2.c | build
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS) -fopenmp
 
-run1: $(TEST1_BIN)
-	./$(TEST1_BIN)
+inject0: all
+	LD_PRELOAD=./$(LIB_PATH) ./$(TEST0_BIN)
+
+inject1: all
+	LD_PRELOAD=./$(LIB_PATH) ./$(TEST1_BIN)
+
+inject2: all
+	LD_PRELOAD=./$(LIB_PATH) ./$(TEST2_BIN)
 
 clean:
 	rm -rf build
 
-.PHONY: all run0 run1 clean
+.PHONY: all clean inject0 inject1 inject2
