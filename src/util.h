@@ -16,15 +16,7 @@ static inline int is_aligned_16(const void *p) {
     return ((uintptr_t) p % 16) == 0;
 }
 
-/* round n up to a multiple of the OS page size */
-// static inline size_t align_pagesize(size_t n) {
-//     size_t ps = (size_t) getpagesize();
-//     size_t rem = n % ps;
-//     return rem ? (n + (ps - rem)) : n;
-// }
-
 static inline size_t align_pagesize(size_t n) {
-    // sysconf(_SC_PAGESIZE) is the modern Linux standard
     size_t ps = (size_t)sysconf(_SC_PAGESIZE);
     size_t rem = n % ps;
     return rem ? (n + (ps - rem)) : n;

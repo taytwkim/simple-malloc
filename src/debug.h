@@ -3,7 +3,8 @@
 
 #include <unistd.h>
 
-#define SMALLOC_VERBOSE 1
+// This will be defined in arena.c or malloc.c
+extern int g_smalloc_verbose;
 
 static inline size_t safe_strlen(const char *s) {
     size_t len = 0;
@@ -11,22 +12,15 @@ static inline size_t safe_strlen(const char *s) {
     return len;
 }
 
-// Usage: safe_log_msg("smalloc: running global_init\n");
-// static inline void safe_log_msg(const char *msg) {
-//     if (SMALLOC_VERBOSE && msg) {
-//         write(STDERR_FILENO, msg, safe_strlen(msg));
-//     }
-// }
-
 static inline void safe_log_msg(const char *msg) {
-    if (SMALLOC_VERBOSE && msg) {
+    if (g_smalloc_verbose && msg) {
         write(1, msg, safe_strlen(msg));
     }
 }
 
 // Usage: safe_log_ptr("smalloc: my_malloc returning ", p);
 static inline void safe_log_ptr(const char *msg, void *ptr) {
-    if (!SMALLOC_VERBOSE) return;
+    if (!g_smalloc_verbose) return;
 
     // Print the message first
     safe_log_msg(msg);

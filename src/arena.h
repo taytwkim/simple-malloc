@@ -20,13 +20,6 @@ int arena_add_new_heap(arena_t *a);
 /* for malloc, we want to allocate from the thread-specific arena */
 arena_t *arena_from_thread(void);
 
-/* 
- * TO DO: for free, we want to find the right "heap" to return
- * Note that freelist functions need the arena, but finding the arena is easy if you find the heap (we just do h->arena)
- * This function will eventually be removed, it's logic is wrong now anyway.
- */
-// arena_t *arena_from_chunk_header(void *hdr);
-
 void ensure_global_init(void);
 
 #endif

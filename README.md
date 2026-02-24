@@ -10,7 +10,7 @@
 make
 ```
 
-2. Compile your code, then use `LD_PRELOAD` to replace default `malloc` and `free` calls with `smalloc`.
+2. Compile your code, then use `LD_PRELOAD` to replace default `malloc` with `smalloc`.
 
 ```bash
 # Compile your code

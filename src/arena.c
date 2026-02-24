@@ -1,12 +1,15 @@
 #include <sys/mman.h>   // for mmap
 #include "arena.h"
 #include "util.h"
-#include <unistd.h> // For sysconf or getpagesize
+#include <unistd.h>     // For sysconf or getpagesize
+#include <stdlib.h>     // for getenv
 
 // If OpenMP is enabled (-fopenmp), the compiler defines _OPENMP
 #ifdef _OPENMP
     #include <omp.h>
 #endif
+
+int g_smalloc_verbose = 0;
 
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 static arena_t g_arenas[MAX_NUM_ARENAS];
@@ -80,6 +83,11 @@ static int arena_init(arena_t *a, int id) {
 }
 
 static void global_init(void) {
+    // Check environment variable set for debugging
+    if (getenv("SMALLOC_VERBOSE")) {
+        g_smalloc_verbose = 1;
+    }
+
     #ifdef _OPENMP
         g_num_arenas = omp_get_max_threads();
     #else
