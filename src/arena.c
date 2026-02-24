@@ -1,4 +1,3 @@
-#define _GNU_SOURCE // Required for MAP_ANONYMOUS on Linux
 #include <sys/mman.h>   // for mmap
 #include "arena.h"
 #include "util.h"

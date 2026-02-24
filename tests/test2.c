@@ -58,7 +58,7 @@ int main(void) {
         return 1;
     } 
     else {
-        printf("test1: PASSED ✅\n");
+        printf("test2: PASSED ✅\n");
         return 0;
     }
 }
