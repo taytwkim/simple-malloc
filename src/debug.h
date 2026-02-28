@@ -2,9 +2,7 @@
 #define SMALLOC_DEBUG_H
 
 #include <unistd.h>
-
-// This will be defined in arena.c or malloc.c
-extern int g_smalloc_verbose;
+#include "config.h"
 
 static inline size_t safe_strlen(const char *s) {
     size_t len = 0;
@@ -13,14 +11,13 @@ static inline size_t safe_strlen(const char *s) {
 }
 
 static inline void safe_log_msg(const char *msg) {
-    if (g_smalloc_verbose && msg) {
+    if (g_cfg.verbose && msg) {
         write(1, msg, safe_strlen(msg));
     }
 }
 
-// Usage: safe_log_ptr("smalloc: my_malloc returning ", p);
 static inline void safe_log_ptr(const char *msg, void *ptr) {
-    if (!g_smalloc_verbose) return;
+    if (!g_cfg.verbose) return;
 
     // Print the message first
     safe_log_msg(msg);

@@ -69,7 +69,8 @@ void *malloc(size_t size) {
     }
 
     void *ret = chunk_hdr_to_payload(hdr);
-    safe_log_ptr("[malloc] allocated: ", ret);
+    
+    safe_log_ptr("[malloc]: allocated: ", ret);
 
     return ret;
 }

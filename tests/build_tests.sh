@@ -20,6 +20,13 @@ echo "  [Done] build/test2 (OpenMP enabled)"
 echo ""
 echo "Compilation complete. To run with your allocator, use:"
 echo "LD_PRELOAD=./build/libsmalloc.so ./build/test0"
+
+echo ""
+echo "To check that the symbol has been injected, set SMALLOC_INJECTED environtment variable:"
+echo "SMALLOC_INJECTED=1 LD_PRELOAD=./build/libsmalloc.so ./build/test0"
+
 echo ""
 echo "To enable logging, set SMALLOC_VERBOSE environtment variable:"
 echo "SMALLOC_VERBOSE=1 LD_PRELOAD=./build/libsmalloc.so ./build/test0"
+
+echo ""

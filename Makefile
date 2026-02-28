@@ -4,7 +4,7 @@ CFLAGS = -std=c11 -Wall -Wextra -O2 -Isrc -fPIC -D_GNU_SOURCE
 LDLIBS = -lpthread
 
 # Library source files
-SRCS = src/arena.c src/freelist.c src/heap.c src/malloc.c
+SRCS = src/arena.c src/freelist.c src/heap.c src/malloc.c src/config.c
 OBJS = $(patsubst src/%.c,build/%.o,$(SRCS))
 
 LIB_NAME = libsmalloc.so
