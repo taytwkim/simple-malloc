@@ -12,7 +12,7 @@
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 static arena_t g_arenas[MAX_NUM_ARENAS];
 static int g_num_arenas = 0;
-static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
+// static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
 
 // If compiled with a specific C standard, the compiler defines __STDC_VERSION__
 #if __STDC_VERSION__ >= 201112L
@@ -21,8 +21,8 @@ static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
     static __thread arena_t *t_arena = NULL;
 #endif
 
-int arena_add_new_heap(arena_t *a) {
-    size_t req = align_pagesize(g_arena_bytes);
+int arena_add_new_heap(arena_t *a, size_t need_total) {
+    size_t req = align_pagesize(need_total);
 
     void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
@@ -30,7 +30,7 @@ int arena_add_new_heap(arena_t *a) {
 
     heap_t *h = (heap_t *)mem;
     h->arena = a;
-    h->next  = NULL;
+    h->next = NULL;
     
     uint8_t *payload = (uint8_t *)mem + sizeof(*h);
 
@@ -47,7 +47,7 @@ int arena_add_new_heap(arena_t *a) {
         curr->next = h;
     }
 
-    a->active_heap = h; // For now, let's say active heap is always the most recently added heap.
+    a->active_heap = h;
 
     return 0;
 }
@@ -73,7 +73,7 @@ static int arena_init(arena_t *a, int id) {
     a->free_list = NULL;
     pthread_mutex_init(&a->lock, NULL);
 
-    int add_heap_succeeded = arena_add_new_heap(a);
+    int add_heap_succeeded = arena_add_new_heap(a, ARENA_DEFAULT_HEAP_SIZE);
     if (add_heap_succeeded < 0) return -1;
 
     return 0;

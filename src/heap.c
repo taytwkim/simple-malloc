@@ -1,6 +1,7 @@
 #include "heap.h"
 #include "arena.h"
 #include "freelist.h"
+#include "debug.h"
 
 void heap_set_next_chunk_P(heap_t *h, void *hdr, int P) {
     void *nxt = get_next_chunk_hdr(hdr);
@@ -16,7 +17,7 @@ void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     uint8_t *hdr = (uint8_t*)(payload - sizeof(chunk_prefix_t));
 
     if ((size_t)(h->end - hdr) < need_total) {
-        int status = arena_add_new_heap(h->arena);
+        int status = arena_add_new_heap(h->arena, ARENA_DEFAULT_HEAP_SIZE);
 
         if (status == 0) {
             return heap_carve_from_bump(h->arena->active_heap, need_total);
@@ -27,6 +28,10 @@ void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     }
 
     chunk_write_size_to_hdr(hdr, need_total);
+
+    // Note that the chunk right before the bump is in-use.
+    // If we are at the base, its safe to say that the previous chunk is "in-use",
+    // so we don't try to merge with left neighbor later when the chunk is freed.
     chunk_set_P(hdr, 1);
     chunk_set_heap(hdr, h);
 
@@ -39,13 +44,17 @@ void* heap_coalesce_free_chunk(heap_t *h, void *hdr) {
     size_t csz = chunk_get_size(hdr);
     void *nxt = get_next_chunk_hdr(hdr);
 
-    if ((uint8_t*) nxt < h->bump && chunk_is_free(nxt)) {
-        /* merge with right chunk */
-        size_t nxt_sz = chunk_get_size(nxt);
-        free_list_remove(h->arena, (free_chunk_t*)nxt);
-        csz += nxt_sz;
-        chunk_write_size_to_hdr(hdr, csz);
-        chunk_write_ftr(hdr, csz);
+    if ((uint8_t*)nxt < h->bump) {
+        void *nxt_nxt = get_next_chunk_hdr(nxt);
+        
+        if ((uint8_t*)nxt_nxt < h->bump && chunk_is_free(nxt)) {
+            /* merge with right chunk */
+            size_t nxt_sz = chunk_get_size(nxt);
+            free_list_remove(h->arena, (free_chunk_t*)nxt);
+            csz += nxt_sz;
+            chunk_write_size_to_hdr(hdr, csz);
+            chunk_write_ftr(hdr, csz);
+        }
     }
 
     if (prev_chunk_is_free(hdr)) {
@@ -60,6 +69,7 @@ void* heap_coalesce_free_chunk(heap_t *h, void *hdr) {
         chunk_write_ftr(prv, csz);
         hdr = prv;
     }
+    
     return hdr;
 }
 

@@ -38,9 +38,11 @@ typedef struct free_chunk {
     struct free_chunk *next;
 } free_chunk_t;
 
-// CHUNK_HDR_SIZE_MASK clears the flag bits (…FFF0)
-//    - header & CHUNK_HDR_SIZE_MASK → size
-// 0xFUL is hex 15 (F) with the UL suffix (unsigned long), and notice that we flip the bits (~).
+/* 
+ * CHUNK_HDR_SIZE_MASK clears the flag bits (…FFF0)
+ *   - header & CHUNK_HDR_SIZE_MASK → size
+ * 0xFUL is hex 15 (F) with the UL suffix (unsigned long), and notice that we flip the bits (~).
+ */
 #define CHUNK_HDR_SIZE_MASK (~(size_t)0xF)
 
 /* 

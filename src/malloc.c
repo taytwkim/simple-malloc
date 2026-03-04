@@ -6,14 +6,14 @@
 #include "util.h"
 
 void *malloc(size_t size) {
+    ensure_global_init();
+    
     safe_log_msg("[malloc]: entered malloc\n");
 
     if (size == 0) {
         safe_log_msg("[malloc]: requested size is 0, return NULL\n");
         return NULL;
     }
-
-    ensure_global_init();
 
     arena_t *a = arena_from_thread();
 
@@ -25,6 +25,14 @@ void *malloc(size_t size) {
     size_t payload = align_16(size);
     size_t need_total = align_16(sizeof(chunk_prefix_t) + payload);     // prefix + header
 
+    if (need_total > ARENA_DEFAULT_HEAP_SIZE) {
+        safe_log_msg("[malloc]: large request alloc path\n");
+        arena_add_new_heap(a, need_total);
+        void *hdr = heap_carve_from_bump(a->active_heap, need_total);
+        void *ret = chunk_hdr_to_payload(hdr);
+        return ret;
+    }
+
     int bin = (int)(need_total / 16) - 2;   // 32->0, 48->1, 64->2 ... smallest is 32 (8 hdr + 16 payload -> 24 -> align -> 32)
 
     if (bin < 0 || bin >= TCACHE_MAX_BINS) bin = -1;
@@ -33,8 +41,7 @@ void *malloc(size_t size) {
     void *hdr = NULL;
 
     if (bin >= 0) {
-        
-        safe_log_msg("[malloc]: tcache hit\n");
+        safe_log_msg("[malloc]: searching tcache\n");
 
         tcache_bin_t *b = &g_tcache[bin];
 
@@ -113,6 +120,7 @@ void free(void *ptr) {
 
     if (bin >= 0) {
         safe_log_msg("[free]: free to tcache\n");
+        
         tcache_bin_t *b = &g_tcache[bin];
 
         if (b->count < TCACHE_MAX_COUNT) {
@@ -144,6 +152,7 @@ void free(void *ptr) {
 
     // if the freed chunk touches the top of THIS heap, shrink bump
     if (merged_end == h->bump) {
+        safe_log_msg("[free]: here?\n");
         h->bump = (uint8_t*)merged;
         pthread_mutex_unlock(&a->lock);
         return;

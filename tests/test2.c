@@ -11,7 +11,7 @@ int main(void) {
     const int nthreads = 4;
     const size_t iters = 10000;   // iterations per thread
 
-    printf("test1: multithreaded alloc/free test\n");
+    printf("test2: multithreaded alloc/free test\n");
     printf("  threads = %d, iters per thread = %zu\n", nthreads, iters);
 
     int errors = 0;
@@ -54,7 +54,7 @@ int main(void) {
     }
 
     if (errors > 0) {
-        printf("test1: FAILED (errors = %d)\n", errors);
+        printf("test2: FAILED (errors = %d)\n", errors);
         return 1;
     } 
     else {

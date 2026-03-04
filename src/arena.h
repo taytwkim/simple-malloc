@@ -6,6 +6,7 @@
 #include "heap.h"
 
 #define MAX_NUM_ARENAS 64
+#define ARENA_DEFAULT_HEAP_SIZE (size_t) 16 * 1024 * 1024
 
 typedef struct arena {
     int id;
@@ -15,9 +16,9 @@ typedef struct arena {
     pthread_mutex_t lock;
 } arena_t;
 
-int arena_add_new_heap(arena_t *a);
+int arena_add_new_heap(arena_t *a, size_t need_total);
 
-/* for malloc, we want to allocate from the thread-specific arena */
+/* for malloc, we want to allocate from the thread-designated arena */
 arena_t *arena_from_thread(void);
 
 void ensure_global_init(void);
