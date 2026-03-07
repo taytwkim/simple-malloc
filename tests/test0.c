@@ -3,7 +3,7 @@
 #include "../src/malloc.h"
 
 int main(void) {
-    void *p = malloc(16777217);
+    void *p = malloc(16);
     
     // If we don't have this, compiler optimization might remove malloc
     if (p) {

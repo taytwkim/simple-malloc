@@ -7,11 +7,11 @@
 
 /* Unit tests for sequential malloc and frees */
 
-static int aligned16(void *p){ 
+static int aligned16(void *p) {
     return ((uintptr_t)p & 15u) == 0; 
 }
 
-static void test_alignment(void){
+static void test_alignment(void) {
     void *a = malloc(1);
     void *b = malloc(17);
     void *c = malloc(4096);
@@ -26,55 +26,32 @@ static void test_alignment(void){
     free(c);
 }
 
-/*
-static void test_coalesce_reuse(void){
-    // Sizes chosen so A need=48, B need=56 (64-bit), A+B=104
-
-    void *a = my_malloc(24);   // need = align16(8 + align16(24=32)) = 48
-    void *b = my_malloc(40);   // need = align16(8 + align16(40=48)) = 56
-    void *c = my_malloc(64);   // keep something after B to avoid touching top
-    assert(a && b && c);
-
-    // Free middle then left → should coalesce into one 104-byte free block at A’s spot
-    my_free(b);
-    my_free(a);
-
-    // Request 56 bytes → allocator needs 80 total (8 hdr + 64 payload)
-    // Since remainder (104-80=24) < MIN_FREE (~48), it should take the whole coalesced block.
-    void *d = my_malloc(56);
+static void test_big_chunk_alloc(void) {
+    void *p = malloc(16777217);
     
-    assert(d == a);  // payload pointer reused at same address
-    my_free(d);
-    my_free(c);
+    // If we don't have this, compiler optimization might remove malloc!
+    if (p) {
+        printf("[test_big_chunk_alloc] Allocated 16777217 bytes at address: %p\n", p);
+    } 
+    else {
+        printf("[test_big_chunk_alloc] Malloc failed\n");
+    }
+
+    free(p);
 }
 
-static void test_top_shrink_reuse(void){
-    void *x = my_malloc(128);
-    void *y = my_malloc(32);
-    assert(x && y);
-
-    my_free(y);
-
-    void *z = my_malloc(16);
-    assert(z && aligned16(z));
-
-    my_free(z);
-    my_free(x);
-}
-*/
-
-static void test_null_and_zero(void){
+static void test_null_and_zero(void) {
     free(NULL);            // free(NULL) should be a no-op
     void *p = malloc(0);   // should be NULL
     assert(p == NULL);
 }
 
-static void test_churn(void){
+static void test_churn(void) {
     enum { N = 96 };
     void *arr[N] = {0};
 
     // Allocate a mix of sizes
-    for (int i = 0; i < N; i++){
+    for (int i = 0; i < N; i++) {
         size_t sz = 1 + (i % 64);    // 1..64 bytes
         arr[i] = malloc(sz);
         assert(arr[i]);
@@ -82,20 +59,20 @@ static void test_churn(void){
     }
 
     // Free every third block to fragment the freelist
-    for (int i = 0; i < N; i += 3){
+    for (int i = 0; i < N; i += 3) {
         free(arr[i]);
         arr[i] = NULL;
     }
 
     // Reuse: allocate & free a bunch of 64B payloads
-    for (int i = 0; i < N; i++){
+    for (int i = 0; i < N; i++) {
         void *p = malloc(64);
         assert(p && aligned16(p));
         free(p);
     }
 
     // Free the rest
-    for (int i = 0; i < N; i++){
+    for (int i = 0; i < N; i++) {
         if (arr[i]) free(arr[i]);
     }
 }
@@ -104,14 +81,11 @@ int main(void){
     printf("[*] test_alignment...\n");
     test_alignment();
     
-    // printf("[*] test_coalesce_reuse...\n");
-    // test_coalesce_reuse();
-    
-    // printf("[*] test_top_shrink_reuse...\n");
-    // test_top_shrink_reuse();
-    
     printf("[*] test_null_and_zero...\n");
     test_null_and_zero();
+    
+    printf("[*] test_big_chunk_alloc...\n");
+    test_big_chunk_alloc();
 
     printf("[*] test_churn...\n");
     test_churn();

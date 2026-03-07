@@ -19,6 +19,8 @@ void heap_set_next_chunk_P(heap_t *h, void *hdr, int P);
 /* if the freelist does not have a suitable chunk, carve from bump */
 void* heap_carve_from_bump(heap_t *h, size_t need_total);
 
+// int heap_is_chunk_before_bump(heap_t *h, void *hdr);
+
 /* merge chunk with adjacent free chunks (adjacent in memory, not in the linked list) */
 void* heap_coalesce_free_chunk(heap_t *h, void *hdr);
 

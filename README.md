@@ -1,6 +1,10 @@
 # smalloc
 
-`smalloc` is a simple memory allocator for Linux.
+`smalloc` is a simple memory allocator for Linux designed to be dynamically linked with existing codebases. 
+
+While not heavily optimized for throughput or RSS, it provides safe concurrent memory allocation through lock-based synchronization. 
+
+To reduce lock contention, per-thread arenas and thread-local caches are used.
 
 ## Getting Started
 

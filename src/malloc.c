@@ -71,12 +71,10 @@ void *malloc(size_t size) {
                 return NULL;
             }
         }
-
         pthread_mutex_unlock(&a->lock);
     }
 
     void *ret = chunk_hdr_to_payload(hdr);
-    
     safe_log_ptr("[malloc]: allocated: ", ret);
 
     return ret;
