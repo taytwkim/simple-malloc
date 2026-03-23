@@ -1,5 +1,5 @@
-#ifndef SMALLOC_DEBUG_H
-#define SMALLOC_DEBUG_H
+#ifndef TKMALLOC_DEBUG_H
+#define TKMALLOC_DEBUG_H
 
 #include <unistd.h>
 #include "config.h"
@@ -10,9 +10,15 @@ static inline size_t safe_strlen(const char *s) {
     return len;
 }
 
+// compiler may generate warning if the return value of write is unused.
+// ssize_t is a signed integer type used for sizes when the function may also need to return -1 for an error.
+static inline void ignore_write_result(ssize_t result) {
+    (void)result;   // casts a value to void i.e., we are intentionally not using this value.
+}
+
 static inline void safe_log_msg(const char *msg) {
     if (g_cfg.verbose && msg) {
-        write(1, msg, safe_strlen(msg));
+        ignore_write_result(write(1, msg, safe_strlen(msg)));
     }
 }
 
@@ -34,7 +40,7 @@ static inline void safe_log_ptr(const char *msg, void *ptr) {
         n /= 16;
     }
     
-    write(STDERR_FILENO, buf, 19);
+    ignore_write_result(write(STDERR_FILENO, buf, 19));
 }
 
 #endif
