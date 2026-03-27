@@ -1,4 +1,4 @@
-# Design a Memory Allocator
+<h1 align="center">Design a Memory Allocator</h1>
 
 `tkmalloc` is a memory allocator for Linux that can be dynamically linked into existing codebases.
 
@@ -27,7 +27,7 @@ LD_PRELOAD=./build/libtkmalloc.so ./build/test0
 
 ### On macOS
 
-`tkmalloc` does not currently support macOS. To run quick Linux-based checks from macOS, use the Docker helper script with one of the test files under the `tests/` directory.
+`tkmalloc` does not currently support macOS. To run quick tests from macOS, use the Docker script with one of the test files under the `tests/` directory.
 
 ```shell
 ./scripts/docker_run.sh tests/test0.c

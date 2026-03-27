@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# script fails fast instead of silently continuing
+# -e            exit immediately if a command fails.
+# -u            treat unset variables as errors.
+# -o pipefail   in a pipeline, fail if any command fails, not just the last one.
 set -euo pipefail
 
 IMAGE_NAME="tkmalloc-linux-dev"

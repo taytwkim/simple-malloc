@@ -5,7 +5,7 @@
 #include <assert.h>
 #include "../src/malloc.h"
 
-/* Unit tests for sequential malloc and frees */
+/* Tests for sequential malloc and frees */
 
 static int aligned16(void *p) {
     return ((uintptr_t)p & 15u) == 0; 
@@ -29,12 +29,12 @@ static void test_alignment(void) {
 static void test_big_chunk_alloc(void) {
     void *p = malloc(16777217);
     
-    // If we don't have this, compiler optimization might remove malloc!
+    // If we don't touch p, compiler optimization might remove malloc!
     if (p) {
-        printf("[test_big_chunk_alloc] Allocated 16777217 bytes at address: %p\n", p);
+        printf("    allocated 16777217 bytes at address: %p\n", p);
     } 
     else {
-        printf("[test_big_chunk_alloc] Malloc failed\n");
+        printf("    malloc failed\n");
     }
 
     free(p);

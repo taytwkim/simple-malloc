@@ -5,7 +5,7 @@
 #include <omp.h>
 #include "../src/malloc.h"
 
-// Unit tests for multi-threaded mallocs and frees
+/* Tests for multi-threaded mallocs and frees */
 
 int main(void) {
     const int nthreads = 4;
