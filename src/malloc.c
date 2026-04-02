@@ -141,17 +141,23 @@ void free(void *ptr) {
     chunk_write_size_to_hdr(hdr, csz);
     chunk_write_ftr(hdr, csz);
 
-    void *merged = heap_coalesce_free_chunk(h, hdr);
+    free_chunk_t *merged = heap_coalesce_free_chunk(h, hdr);
 
     size_t msz = chunk_get_size(merged);
+
     uint8_t *merged_end = (uint8_t*)merged + msz;
 
     heap_set_next_chunk_P(h, merged, 0);
 
     // if the freed chunk touches the top of THIS heap, shrink bump
     if (merged_end == h->bump) {
-        safe_log_msg("[free]: here?\n");
         h->bump = (uint8_t*)merged;
+
+        // unmap heap if it is completely free
+        if (h->bump == h->base && !(a->heaps == h && h->next == NULL)) {
+            arena_unmap_heap(a, h);
+        }
+
         pthread_mutex_unlock(&a->lock);
         return;
     }
