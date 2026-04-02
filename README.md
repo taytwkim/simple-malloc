@@ -5,7 +5,7 @@
 While not heavily optimized for throughput or RSS, it provides safe concurrent memory allocation through lock protection. 
 Per-thread arenas and thread-local caches are used to reduce contention.
 
-## Getting Started
+## 🏁 Getting Started
 
 ### On Linux
 

@@ -16,9 +16,12 @@ typedef struct arena {
     pthread_mutex_t lock;
 } arena_t;
 
-int arena_add_new_heap(arena_t *a, size_t need_total);
+int arena_map_new_heap(arena_t *a, size_t need_total);
 
-/* for malloc, we want to allocate from the thread-designated arena */
+/* find heap and remove from the linked list*/
+int arena_unmap_heap(arena_t *a, heap_t *h);
+
+/* for malloc, we want to allocate from the thread-specific arena */
 arena_t *arena_from_thread(void);
 
 void ensure_global_init(void);

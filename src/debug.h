@@ -13,7 +13,7 @@ static inline size_t safe_strlen(const char *s) {
 // compiler may generate warning if the return value of write is unused.
 // ssize_t is a signed integer type used for sizes when the function may also need to return -1 for an error.
 static inline void ignore_write_result(ssize_t result) {
-    (void)result;   // casts a value to void i.e., we are intentionally not using this value.
+    (void)result;   // casts value to void i.e., we are intentionally not using this value.
 }
 
 static inline void safe_log_msg(const char *msg) {

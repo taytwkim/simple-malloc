@@ -112,7 +112,6 @@ static inline void chunk_set_heap(void *hdr, heap_t *h) {
 }
 
 static inline size_t get_free_chunk_min_size(void) { 
-    // free_chunk itself doesn't include the header, so we add sizeof(size_t)
     return align_16(sizeof(free_chunk_t) + sizeof(size_t)); 
 }
 

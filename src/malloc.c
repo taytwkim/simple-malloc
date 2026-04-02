@@ -27,7 +27,7 @@ void *malloc(size_t size) {
 
     if (need_total > ARENA_DEFAULT_HEAP_SIZE) {
         safe_log_msg("[malloc]: large request alloc path\n");
-        arena_add_new_heap(a, need_total);
+        arena_map_new_heap(a, need_total);
         void *hdr = heap_carve_from_bump(a->active_heap, need_total);
         void *ret = chunk_hdr_to_payload(hdr);
         return ret;

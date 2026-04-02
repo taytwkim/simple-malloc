@@ -12,7 +12,6 @@
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 static arena_t g_arenas[MAX_NUM_ARENAS];
 static int g_num_arenas = 0;
-// static size_t g_arena_bytes = (size_t)(16 * 1024 * 1024);
 
 // If compiled with a specific C standard, the compiler defines __STDC_VERSION__
 #if __STDC_VERSION__ >= 201112L
@@ -21,7 +20,7 @@ static int g_num_arenas = 0;
     static __thread arena_t *t_arena = NULL;
 #endif
 
-int arena_add_new_heap(arena_t *a, size_t need_total) {
+int arena_map_new_heap(arena_t *a, size_t need_total) {
     size_t req = align_pagesize(need_total);
 
     void *mem = mmap(NULL, req, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -52,6 +51,37 @@ int arena_add_new_heap(arena_t *a, size_t need_total) {
     return 0;
 }
 
+int arena_unmap_heap(arena_t *a, heap_t *h) {
+    heap_t *curr = a->heaps;
+    heap_t* prev = NULL;
+
+    while (curr) {
+        if (curr == h) {
+            // remove from linked list
+            if (prev == NULL) {
+                // if h is the head of the list
+                a->heaps = curr->next;
+            }
+            else {
+                prev->next = curr->next;
+            }
+            
+            if (h == a->active_heap) {
+                // for now, we always set the last heap to be the active heap
+                a->active_heap = prev;
+            }
+
+            // unmap
+            size_t map_size = (size_t)((uint8_t *)h->end - (uint8_t *)h);
+            (void)munmap((void *)h, map_size);
+            return 0;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+    return -1;
+}
+
 static void arena_unmap_all_heaps(arena_t *a) {
     heap_t *h = a->heaps;
 
@@ -73,10 +103,27 @@ static int arena_init(arena_t *a, int id) {
     a->free_list = NULL;
     pthread_mutex_init(&a->lock, NULL);
 
-    int add_heap_succeeded = arena_add_new_heap(a, ARENA_DEFAULT_HEAP_SIZE);
+    int add_heap_succeeded = arena_map_new_heap(a, ARENA_DEFAULT_HEAP_SIZE);
     if (add_heap_succeeded < 0) return -1;
 
     return 0;
+}
+
+/* for malloc, we want to allocate from the thread-specific arena */
+arena_t *arena_from_thread(void) {
+    if (t_arena) return t_arena;
+
+    int tid = 0;
+
+    #ifdef _OPENMP
+        tid = omp_get_thread_num();
+        if (tid < 0) tid = 0;
+    #endif
+
+    int idx = tid % g_num_arenas;
+    t_arena = &g_arenas[idx];
+
+    return t_arena;
 }
 
 static void global_init(void) {
@@ -105,21 +152,4 @@ static void global_init(void) {
 
 void ensure_global_init(void) {
     pthread_once(&g_once, global_init);
-}
-
-/* for malloc, we want to allocate from the thread-specific arena */
-arena_t *arena_from_thread(void) {
-    if (t_arena) return t_arena;
-
-    int tid = 0;
-
-    #ifdef _OPENMP
-        tid = omp_get_thread_num();
-        if (tid < 0) tid = 0;
-    #endif
-
-    int idx = tid % g_num_arenas;
-    t_arena = &g_arenas[idx];
-
-    return t_arena;
 }

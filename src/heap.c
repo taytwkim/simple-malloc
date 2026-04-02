@@ -17,7 +17,7 @@ void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     uint8_t *hdr = (uint8_t*)(payload - sizeof(chunk_prefix_t));
 
     if ((size_t)(h->end - hdr) < need_total) {
-        int status = arena_add_new_heap(h->arena, ARENA_DEFAULT_HEAP_SIZE);
+        int status = arena_map_new_heap(h->arena, ARENA_DEFAULT_HEAP_SIZE);
 
         if (status == 0) {
             return heap_carve_from_bump(h->arena->active_heap, need_total);
@@ -40,7 +40,7 @@ void* heap_carve_from_bump(heap_t *h, size_t need_total) {
     return hdr;
 }
 
-/* last chunk = chunk right before the bump */
+/* last chunk here means chunk right before the bump */
 static int heap_is_last_chunk(heap_t *h, void *hdr) {
     void *nxt = get_next_chunk_hdr(hdr);
     return (uint8_t*)nxt == h->bump;
@@ -57,7 +57,6 @@ void* heap_coalesce_free_chunk(heap_t *h, void *hdr) {
         // remember that the way we check whether a chunk is free is by inspecing the P flag of the NEXT chunk hdr
         // so if the next header is the last chunk in the heap, it is not safe to call chunk_is_free, we are reading
         // from the unexplored region.
-        
         if (!heap_is_last_chunk(h, nxt) && chunk_is_free(nxt)) {
             size_t nxt_sz = chunk_get_size(nxt);
             free_list_remove(h->arena, (free_chunk_t*)nxt);
