@@ -10,16 +10,18 @@ IMAGE_NAME="tkmalloc-linux-dev"
 CONTAINER_WORKDIR="/workspace"
 
 usage() {
-    echo "Usage: $0 <test-source.c>"
-    echo "Example: $0 tests/test0.c"
+    echo "Usage: $0 <test-source.c> [KEY=VALUE ...]"
+    echo "Example: $0 tests/test0.c TKMALLOC_DISABLE_TCACHE=1 TKMALLOC_VERBOSE=1"
 }
 
-if [[ $# -ne 1 ]]; then
+if [[ $# -lt 1 ]]; then
     usage
     exit 1
 fi
 
 TEST_SOURCE="$1"
+shift
+EXTRA_ENVS=("$@")
 
 if ! command -v docker >/dev/null 2>&1; then
     echo "docker is not installed or not available in PATH" >&2
@@ -35,6 +37,7 @@ fi
 
 TEST_BASENAME="$(basename "$TEST_SOURCE")"
 TEST_NAME="${TEST_BASENAME%.c}"
+EXTRA_ENV_STRING="${EXTRA_ENVS[*]:-}"
 
 docker build -t "$IMAGE_NAME" "$REPO_ROOT"
 
@@ -55,5 +58,5 @@ docker run --rm \
         gcc -std=c11 -Wall -Wextra -O2 -Isrc -D_GNU_SOURCE \"$TEST_SOURCE\" -o \"build/$TEST_NAME\" -lpthread -fopenmp
         echo
         echo \"Running build/$TEST_NAME with LD_PRELOAD=./build/libtkmalloc.so\"
-        TKMALLOC_INJECTED=1 LD_PRELOAD=./build/libtkmalloc.so \"./build/$TEST_NAME\"
+        TKMALLOC_INJECTED=1 ${EXTRA_ENV_STRING} LD_PRELOAD=./build/libtkmalloc.so \"./build/$TEST_NAME\"
     "

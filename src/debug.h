@@ -40,7 +40,7 @@ static inline void safe_log_ptr(const char *msg, void *ptr) {
         n /= 16;
     }
     
-    ignore_write_result(write(STDERR_FILENO, buf, 19));
+    ignore_write_result(write(STDOUT_FILENO, buf, 19));
 }
 
 #endif

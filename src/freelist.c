@@ -1,7 +1,18 @@
 #include "freelist.h"
+#include "debug.h"
 
 void free_list_remove(arena_t *a, free_chunk_t *fc) {
+    safe_log_msg("[freelist_remove]: entered\n");
+    safe_log_ptr("[freelist_remove]: fc = ", fc);
+    safe_log_ptr("[freelist_remove]: a->free_list = ", a->free_list);
+    safe_log_ptr("[freelist_remove]: fc->prev = ", fc->prev);
+    safe_log_ptr("[freelist_remove]: fc->next = ", fc->next);
+
     free_chunk_t *fd = fc->prev, *bk = fc->next;
+
+    safe_log_ptr("[freelist_remove]: fd = ", fd);
+    safe_log_ptr("[freelist_remove]: bk = ", bk);
+
     if (bk) bk->prev = fd;
     if (fd) fd->next = bk;
     if (a->free_list == fc) a->free_list = fd;

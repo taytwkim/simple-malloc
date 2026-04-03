@@ -17,4 +17,12 @@ void config_init(void) {
         ignore_write_result(write(1, msg, safe_strlen(msg)));
         g_cfg.verbose = 1;
     }
+
+    if (getenv("TKMALLOC_DISABLE_TCACHE")) {
+        if (g_cfg.verbose) {
+            char* msg = "Tcache disabled.\n";
+            ignore_write_result(write(1, msg, safe_strlen(msg)));
+        }
+        g_cfg.disable_tcache = 1;
+    }
 }

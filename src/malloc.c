@@ -1,4 +1,5 @@
 #include "arena.h"
+#include "config.h"
 #include "debug.h"
 #include "freelist.h"
 #include "heap.h"
@@ -24,6 +25,11 @@ void *malloc(size_t size) {
 
     size_t payload = align_16(size);
     size_t need_total = align_16(sizeof(chunk_prefix_t) + payload);     // prefix + header
+    size_t min_chunk = get_free_chunk_min_size();
+
+    if (need_total < min_chunk) {
+        need_total = min_chunk;
+    }
 
     if (need_total > ARENA_DEFAULT_HEAP_SIZE) {
         safe_log_msg("[malloc]: large request alloc path\n");
@@ -116,7 +122,7 @@ void free(void *ptr) {
     // NOTE: this caches into the current thread's tcache even for cross-thread frees.
     // That’s okay for correctness as long as ownership metadata remains in the chunk.
 
-    if (bin >= 0) {
+    if (!g_cfg.disable_tcache && bin >= 0) {
         safe_log_msg("[free]: free to tcache\n");
         
         tcache_bin_t *b = &g_tcache[bin];
@@ -141,6 +147,7 @@ void free(void *ptr) {
     chunk_write_size_to_hdr(hdr, csz);
     chunk_write_ftr(hdr, csz);
 
+    safe_log_msg("[free]: merge free chunk\n");
     free_chunk_t *merged = heap_coalesce_free_chunk(h, hdr);
 
     size_t msz = chunk_get_size(merged);
@@ -151,10 +158,12 @@ void free(void *ptr) {
 
     // if the freed chunk touches the top of THIS heap, shrink bump
     if (merged_end == h->bump) {
+        safe_log_msg("[free]: shrink bump\n");
         h->bump = (uint8_t*)merged;
 
         // unmap heap if it is completely free
         if (h->bump == h->base && !(a->heaps == h && h->next == NULL)) {
+            safe_log_msg("[free]: heap unused, unmap heap\n");
             arena_unmap_heap(a, h);
         }
 
@@ -165,6 +174,7 @@ void free(void *ptr) {
     ((free_chunk_t*)merged)->prev = NULL;
     ((free_chunk_t*)merged)->next = NULL;
 
+    safe_log_msg("[free]: push free chunk to freelist\n");
     free_list_push_front(a, (free_chunk_t*)merged);
 
     pthread_mutex_unlock(&a->lock);

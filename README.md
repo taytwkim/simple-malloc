@@ -5,9 +5,9 @@
 While not heavily optimized for throughput or RSS, it provides safe concurrent memory allocation through lock protection. 
 Per-thread arenas and thread-local caches are used to reduce contention.
 
-## 🏁 Getting Started
+## Getting Started
 
-### On Linux
+### Linux
 
 1. Build `libtkmalloc.so`.
 
@@ -25,7 +25,7 @@ gcc tests/test0.c -o build/test0
 LD_PRELOAD=./build/libtkmalloc.so ./build/test0
 ```
 
-### On macOS
+### macOS
 
 `tkmalloc` does not currently support macOS. To run quick tests from macOS, use the Docker script with one of the test files under the `tests/` directory.
 

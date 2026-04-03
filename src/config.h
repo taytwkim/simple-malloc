@@ -6,6 +6,7 @@
 typedef struct {
     int injected;
     int verbose;
+    int disable_tcache;
 } tkmalloc_config_t;
 
 extern tkmalloc_config_t g_cfg;
