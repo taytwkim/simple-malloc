@@ -1,17 +1,15 @@
 #include <stdlib.h>     // for getenv (used by config_init)
 #include <sys/mman.h>   // for mmap
+#include <unistd.h>     // for sysconf
 #include "arena.h"
 #include "util.h"
 #include "config.h"
 
-// If OpenMP is enabled (-fopenmp), the compiler defines _OPENMP
-#ifdef _OPENMP
-    #include <omp.h>
-#endif
-
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 static arena_t g_arenas[MAX_NUM_ARENAS];
 static int g_num_arenas = 0;
+static int g_next_arena = 0;
+static pthread_mutex_t g_arena_assign_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // If compiled with a specific C standard, the compiler defines __STDC_VERSION__
 #if __STDC_VERSION__ >= 201112L
@@ -71,7 +69,6 @@ int arena_unmap_heap(arena_t *a, heap_t *h) {
                 a->active_heap = prev;
             }
 
-            // unmap
             size_t map_size = (size_t)((uint8_t *)h->end - (uint8_t *)h);
             (void)munmap((void *)h, map_size);
             return 0;
@@ -113,15 +110,14 @@ static int arena_init(arena_t *a, int id) {
 arena_t *arena_from_thread(void) {
     if (t_arena) return t_arena;
 
-    int tid = 0;
+    pthread_mutex_lock(&g_arena_assign_lock);
 
-    #ifdef _OPENMP
-        tid = omp_get_thread_num();
-        if (tid < 0) tid = 0;
-    #endif
+    int idx = g_next_arena % g_num_arenas;
+    g_next_arena++;
 
-    int idx = tid % g_num_arenas;
     t_arena = &g_arenas[idx];
+
+    pthread_mutex_unlock(&g_arena_assign_lock);
 
     return t_arena;
 }
@@ -129,11 +125,11 @@ arena_t *arena_from_thread(void) {
 static void global_init(void) {
     config_init();  // read environment variables once during startup
 
-    #ifdef _OPENMP
-        g_num_arenas = omp_get_max_threads();
-    #else
-        g_num_arenas = 1;
-    #endif
+    long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+
+    if (cpu_count < 1) cpu_count = 1;
+
+    g_num_arenas = (int)cpu_count;
 
     if (g_num_arenas < 1) g_num_arenas = 1;
     
