@@ -46,7 +46,7 @@ void *malloc(size_t size) {
     // 1) Try tcache first
     void *hdr = NULL;
 
-    if (bin >= 0) {
+    if (!g_cfg.disable_tcache && bin >= 0) {
         safe_log_msg("[malloc]: searching tcache\n");
 
         tcache_bin_t *b = &g_tcache[bin];
@@ -61,7 +61,7 @@ void *malloc(size_t size) {
 
     // 2) If tcache miss, fall back to arena freelist / bump
     if (!hdr) {
-        safe_log_msg("[malloc]: tcache miss\n");
+        safe_log_msg("[malloc]: searching freelist\n");
 
         pthread_mutex_lock(&a->lock);
 
@@ -111,7 +111,7 @@ void free(void *ptr) {
         safe_log_msg("[free]: failed to find the right arena\n");
         return;
     }
-
+    
     int bin = (int)(csz / 16) - 2;
 
     if (bin < 0 || bin >= TCACHE_MAX_BINS) {

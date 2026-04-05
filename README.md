@@ -19,10 +19,10 @@ make
 
 ```shell
 # Compile target code
-gcc tests/test0.c -o build/test0
+gcc tests/hello.c -o build/hello
 
 # Inject tkmalloc
-LD_PRELOAD=./build/libtkmalloc.so ./build/test0
+LD_PRELOAD=./build/libtkmalloc.so ./build/hello
 ```
 
 ### macOS
@@ -30,5 +30,5 @@ LD_PRELOAD=./build/libtkmalloc.so ./build/test0
 `tkmalloc` does not currently support macOS. To run quick tests from macOS, use the Docker script with one of the test files under the `tests/` directory.
 
 ```shell
-./scripts/docker_run.sh tests/test0.c
+./scripts/docker_run.sh tests/hello.c
 ```

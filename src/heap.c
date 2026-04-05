@@ -58,13 +58,11 @@ static int heap_is_first_chunk(heap_t *h, void *hdr) {
 
 /* merge chunk with adjacent free chunks (adjacent in memory, not in the linked list) */
 void* heap_coalesce_free_chunk(heap_t *h, void *hdr) {
-    safe_log_msg("[free]: hi 1\n");
     size_t csz = chunk_get_size(hdr);
     void *nxt = get_next_chunk_hdr(hdr);
 
     /* merge with right chunk */
     if (!heap_is_last_chunk(h, hdr)) {
-        safe_log_msg("[free]: hi 2\n");
         // remember that the way we check whether a chunk is free is by inspecing the P flag of the NEXT chunk hdr
         // so if the next header is the last chunk in the heap, it is not safe to call chunk_is_free, we are reading
         // from the unexplored region.
@@ -79,22 +77,17 @@ void* heap_coalesce_free_chunk(heap_t *h, void *hdr) {
 
     /* merge with left chunk */
     if (!heap_is_first_chunk(h, hdr) && prev_chunk_is_free(hdr)) {
-        safe_log_msg("[free]: hi 3\n");
         uint8_t *p = (uint8_t*) hdr;
         void *prev_footer = (p - sizeof(size_t));
         size_t prev_sz = chunk_get_size(prev_footer);
         void *prv = p - prev_sz;
-        safe_log_msg("[free]: hi 4\n");
         free_list_remove(h->arena, (free_chunk_t*) prv);
-        safe_log_msg("[free]: hi 5\n");
         csz += prev_sz;
         chunk_write_size_to_hdr(prv, csz);
-        safe_log_msg("[free]: hi 6\n");
         chunk_write_ftr(prv, csz);
         hdr = prv;
     }
 
-    safe_log_msg("[free]: hi 8\n");
     return hdr;
 }
 

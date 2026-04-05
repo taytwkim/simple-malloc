@@ -1,4 +1,4 @@
-// test/test1.c
+// tests/parallel.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

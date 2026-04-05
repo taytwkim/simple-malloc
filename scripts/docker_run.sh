@@ -11,7 +11,7 @@ CONTAINER_WORKDIR="/workspace"
 
 usage() {
     echo "Usage: $0 <test-source.c> [KEY=VALUE ...]"
-    echo "Example: $0 tests/test0.c TKMALLOC_DISABLE_TCACHE=1 TKMALLOC_VERBOSE=1"
+    echo "Example: $0 tests/hello.c TKMALLOC_DISABLE_TCACHE=1 TKMALLOC_VERBOSE=1"
 }
 
 if [[ $# -lt 1 ]]; then

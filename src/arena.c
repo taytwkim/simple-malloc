@@ -110,6 +110,11 @@ static int arena_init(arena_t *a, int id) {
 arena_t *arena_from_thread(void) {
     if (t_arena) return t_arena;
 
+    if (g_cfg.disable_arenas) {
+        t_arena = &g_arenas[0];
+        return t_arena;
+    }
+
     pthread_mutex_lock(&g_arena_assign_lock);
 
     int idx = g_next_arena % g_num_arenas;
@@ -125,11 +130,16 @@ arena_t *arena_from_thread(void) {
 static void global_init(void) {
     config_init();  // read environment variables once during startup
 
-    long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
+    if (g_cfg.disable_arenas) {
+        g_num_arenas = 1;
+    }
+    else {
+        long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
 
-    if (cpu_count < 1) cpu_count = 1;
+        if (cpu_count < 1) cpu_count = 1;
 
-    g_num_arenas = (int)cpu_count;
+        g_num_arenas = (int)cpu_count;
+    }
 
     if (g_num_arenas < 1) g_num_arenas = 1;
     
